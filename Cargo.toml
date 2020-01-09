@@ -1,9 +1,17 @@
 [package]
-name = "dwarfer"
+name = "angvarf"
 version = "0.1.0"
 authors = ["forestaa <t.daichi.3@gmail.com>"]
 edition = "2018"
 
+
+[[bin]]
+name = "angvarf"
+path = "src/main.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+object = "0.17.0"
+memmap = "0.7.0"
+gimli = "0.19.0"
