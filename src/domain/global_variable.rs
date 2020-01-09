@@ -9,8 +9,8 @@ impl Address {
         Address(location)
     }
 
-    pub fn add(&self, size: usize) -> Address {
-        Address(self.0.add(size))
+    pub fn add(&mut self, size: usize) {
+        self.0.add(size);
     }
 }
 
@@ -22,7 +22,29 @@ impl Into<usize> for Address {
 
 #[derive(Debug)]
 pub struct GlobalVariable {
-    pub address: Option<Address>,
-    pub name: String,
-    pub type_ref: TypeEntryId,
+    address: Option<Address>,
+    name: String,
+    type_ref: TypeEntryId,
+}
+
+impl GlobalVariable {
+    pub fn new(address: Option<Address>, name: String, type_ref: TypeEntryId) -> Self {
+        GlobalVariable {
+            address,
+            name,
+            type_ref,
+        }
+    }
+
+    pub fn address(&self) -> Option<Address> {
+        self.address.clone()
+    }
+
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn type_ref(&self) -> &TypeEntryId {
+        &self.type_ref
+    }
 }

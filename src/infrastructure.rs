@@ -31,9 +31,9 @@ pub mod fromelf {
         impl FromElfBlock {
             fn from_variable_view(variable_view: GlobalVariableView) -> FromElfBlock {
                 let mut lines = vec![FromElfLine {
-                    address: variable_view.address().map(|addr| addr.into()),
+                    address: variable_view.address().map(|addr| addr.clone().into()),
                     size: variable_view.size(),
-                    variable_name: variable_view.name(),
+                    variable_name: variable_view.name().clone(),
                     variable_type: variable_view.type_view().to_string(),
                 }];
                 for child in variable_view.children() {

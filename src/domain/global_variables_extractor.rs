@@ -23,11 +23,7 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                     let name = entry.name().unwrap();
                     let address = entry.location().map(Address::new);
                     let type_ref = TypeEntryId::new(entry.type_offset().unwrap());
-                    global_variables.push(GlobalVariable {
-                        name,
-                        address,
-                        type_ref,
-                    });
+                    global_variables.push(GlobalVariable::new(address, name, type_ref));
                 }
                 DwarfTag::DW_TAG_typedef => {
                     let id = TypeEntryId::new(entry.offset());

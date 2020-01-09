@@ -58,8 +58,8 @@ impl Location {
         Location(size)
     }
 
-    pub fn add(&self, size: usize) -> Location {
-        Location(self.0 + size)
+    pub fn add(&mut self, size: usize) {
+        self.0 += size;
     }
 }
 

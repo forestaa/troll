@@ -12,48 +12,36 @@ pub struct GlobalVariableView {
 }
 
 impl GlobalVariableView {
-    pub fn name(&self) -> String {
-        self.name.clone()
+    pub fn name(&self) -> &String {
+        &self.name
     }
 
     pub fn size(&self) -> usize {
         self.size
     }
 
-    pub fn address(&self) -> Option<Address> {
-        self.address.clone()
+    pub fn address(&self) -> Option<&Address> {
+        self.address.as_ref()
     }
 
-    pub fn type_view(&self) -> TypeView {
-        self.type_view.clone()
+    pub fn type_view(&self) -> &TypeView {
+        &self.type_view
     }
 
-    pub fn children(&self) -> Vec<Self> {
-        self.children.clone()
+    pub fn children(self) -> Vec<Self> {
+        self.children
     }
 
-    pub fn map_name(self, f: impl FnOnce(String) -> String) -> Self {
-        GlobalVariableView {
-            name: f(self.name),
-            size: self.size,
-            address: self.address,
-            type_view: self.type_view,
-            children: self.children,
-        }
+    pub fn map_name(&mut self, f: impl FnOnce(&String) -> String) {
+        self.name = f(&self.name);
     }
 
-    pub fn set_type_view(self, type_view: TypeView) -> Self {
-        self.map_type_view(|_| type_view)
+    pub fn set_type_view(&mut self, type_view: TypeView) {
+        self.map_type_view(|_| type_view);
     }
 
-    pub fn map_type_view(self, f: impl FnOnce(TypeView) -> TypeView) -> Self {
-        GlobalVariableView {
-            name: self.name,
-            size: self.size,
-            address: self.address,
-            type_view: f(self.type_view),
-            children: self.children,
-        }
+    pub fn map_type_view(&mut self, f: impl FnOnce(TypeView) -> TypeView) {
+        self.type_view = f(self.type_view.clone())
     }
 }
 
@@ -95,7 +83,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
     pub fn from_global_variable(&self, global_variable: GlobalVariable) -> GlobalVariableView {
         match self
             .type_entry_repository
-            .find_by_id(&global_variable.type_ref)
+            .find_by_id(global_variable.type_ref())
         {
             None => unimplemented!(),
             Some(type_entry) => match &type_entry.kind {
@@ -103,40 +91,42 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     name: type_name,
                     type_ref,
                 } => {
-                    let global_variable = GlobalVariable {
-                        address: global_variable.address,
-                        name: global_variable.name,
-                        type_ref: type_ref.clone(),
-                    };
+                    let global_variable = GlobalVariable::new(
+                        global_variable.address(),
+                        global_variable.name(),
+                        type_ref.clone(),
+                    );
 
-                    self.from_global_variable(global_variable)
-                        .set_type_view(TypeView::TypeDef {
-                            name: type_name.clone(),
-                        })
+                    let mut global_variable_view = self.from_global_variable(global_variable);
+                    global_variable_view.set_type_view(TypeView::TypeDef {
+                        name: type_name.clone(),
+                    });
+                    global_variable_view
                 }
                 TypeEntryKind::ConstType { type_ref } => {
-                    let global_variable = GlobalVariable {
-                        address: global_variable.address,
-                        name: global_variable.name,
-                        type_ref: type_ref.clone(),
-                    };
+                    let global_variable = GlobalVariable::new(
+                        global_variable.address(),
+                        global_variable.name(),
+                        type_ref.clone(),
+                    );
 
-                    self.from_global_variable(global_variable)
-                        .map_type_view(|type_view| TypeView::Const {
-                            type_view: Box::new(type_view),
-                        })
+                    let mut global_variable_view = self.from_global_variable(global_variable);
+                    global_variable_view.map_type_view(|type_view| TypeView::Const {
+                        type_view: Box::new(type_view),
+                    });
+                    global_variable_view
                 }
                 TypeEntryKind::PointerType { size, type_ref } => match type_ref {
                     None => GlobalVariableView {
-                        name: global_variable.name.clone(),
-                        address: global_variable.address.clone(),
+                        name: global_variable.name(),
+                        address: global_variable.address(),
                         size: *size,
                         type_view: TypeView::VoidPointer,
                         children: Vec::new(),
                     },
                     Some(type_ref) => GlobalVariableView {
-                        name: global_variable.name.clone(),
-                        address: global_variable.address.clone(),
+                        name: global_variable.name(),
+                        address: global_variable.address(),
                         size: *size,
                         type_view: TypeView::Pointer {
                             type_view: Box::new(self.type_view_from_type_entry(type_ref)),
@@ -145,27 +135,29 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     },
                 },
                 TypeEntryKind::BaseType { name, size } => GlobalVariableView {
-                    name: global_variable.name.clone(),
-                    address: global_variable.address.clone(),
+                    name: global_variable.name(),
+                    address: global_variable.address(),
                     size: *size,
                     type_view: TypeView::Base { name: name.clone() },
                     children: Vec::new(),
                 },
                 TypeEntryKind::StructureType { name, members } => {
-                    let base_address = &mut global_variable.address.clone();
+                    let base_address = &mut global_variable.address();
                     let members: Vec<GlobalVariableView> = members
                         .iter()
                         .map(|member| {
-                            self.from_structure_type_member_entry(member, base_address)
-                                .map_name(|member_name| {
-                                    format!("{}.{}", global_variable.name, member_name)
-                                })
+                            let mut member_view =
+                                self.from_structure_type_member_entry(member, base_address);
+                            member_view.map_name(|member_name| {
+                                format!("{}.{}", global_variable.name(), member_name)
+                            });
+                            member_view
                         })
                         .collect();
                     let size = members.iter().map(|member| member.size()).sum();
                     GlobalVariableView {
-                        name: global_variable.name.clone(),
-                        address: global_variable.address,
+                        name: global_variable.name(),
+                        address: global_variable.address(),
                         size: size,
                         type_view: TypeView::Structure { name: name.clone() },
                         children: members,
@@ -179,24 +171,24 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     let mut size = 0;
                     let elements = match upper_bound {
                         None => {
-                            let element_view = self.from_global_variable(GlobalVariable {
-                                address: global_variable.address.clone(),
-                                name: global_variable.name.clone(),
-                                type_ref: type_ref.clone(),
-                            });
+                            let element_view = self.from_global_variable(GlobalVariable::new(
+                                global_variable.address(),
+                                global_variable.name(),
+                                type_ref.clone(),
+                            ));
                             size += element_view.size();
                             vec![element_view]
                         }
                         Some(upper_bound) => (0..*upper_bound)
                             .map(|n| {
-                                let element_view = self.from_global_variable(GlobalVariable {
-                                    name: format!("{}[{}]", global_variable.name.clone(), n),
-                                    address: global_variable
-                                        .address
-                                        .as_ref()
-                                        .map(|addr| addr.add(size)),
-                                    type_ref: type_ref.clone(),
-                                });
+                                let element_view = self.from_global_variable(GlobalVariable::new(
+                                    global_variable.address().map(|mut addr| {
+                                        addr.add(size);
+                                        addr
+                                    }),
+                                    format!("{}[{}]", global_variable.name(), n),
+                                    type_ref.clone(),
+                                ));
                                 size += element_view.size();
                                 element_view
                             })
@@ -204,8 +196,8 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     };
 
                     GlobalVariableView {
-                        name: global_variable.name.clone(),
-                        address: global_variable.address,
+                        name: global_variable.name(),
+                        address: global_variable.address(),
                         size: size,
                         type_view: TypeView::Array {
                             element_type: Box::new(type_view),
@@ -234,26 +226,32 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                         name: member.name.clone(),
                         type_ref: type_ref.clone(),
                     };
-                    let member_view = self.from_structure_type_member_entry(&member, base_address);
+                    let mut member_view =
+                        self.from_structure_type_member_entry(&member, base_address);
 
                     member_view.set_type_view(TypeView::Base {
                         name: type_name.clone(),
-                    })
+                    });
+                    member_view
                 }
                 TypeEntryKind::ConstType { type_ref } => {
                     let member = StructureTypeMemberEntry {
                         name: member.name.clone(),
                         type_ref: type_ref.clone(),
                     };
-                    let member_view = self.from_structure_type_member_entry(&member, base_address);
+                    let mut member_view =
+                        self.from_structure_type_member_entry(&member, base_address);
 
                     member_view.map_type_view(|type_view| TypeView::Const {
                         type_view: Box::new(type_view),
-                    })
+                    });
+                    member_view
                 }
                 TypeEntryKind::PointerType { size, type_ref } => {
                     let address = base_address.clone();
-                    *base_address = base_address.as_ref().map(|addr| addr.add(*size));
+                    if let Some(addr) = base_address {
+                        addr.add(*size);
+                    }
 
                     match type_ref {
                         None => GlobalVariableView {
@@ -276,7 +274,9 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                 }
                 TypeEntryKind::BaseType { name, size } => {
                     let address = base_address.clone();
-                    *base_address = base_address.as_ref().map(|addr| addr.add(*size));
+                    if let Some(addr) = base_address {
+                        addr.add(*size);
+                    }
 
                     GlobalVariableView {
                         name: member.name.clone(),
@@ -291,8 +291,11 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     let members: Vec<GlobalVariableView> = members
                         .iter()
                         .map(|member| {
-                            self.from_structure_type_member_entry(member, base_address)
-                                .map_name(|member_name| format!("{}.{}", member.name, member_name))
+                            let mut member_view =
+                                self.from_structure_type_member_entry(member, base_address);
+                            member_view
+                                .map_name(|member_name| format!("{}.{}", member.name, member_name));
+                            member_view
                         })
                         .collect();
                     let size = members.iter().map(|member| member.size()).sum();
@@ -314,28 +317,34 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     let mut size = 0;
                     let elements = match upper_bound {
                         None => {
-                            let element_view = self.from_global_variable(GlobalVariable {
-                                address: address.clone(),
-                                name: member.name.clone(),
-                                type_ref: type_ref.clone(),
-                            });
+                            let element_view = self.from_global_variable(GlobalVariable::new(
+                                address.clone(),
+                                member.name.clone(),
+                                type_ref.clone(),
+                            ));
                             size += element_view.size();
                             vec![element_view]
                         }
                         Some(upper_bound) => (0..*upper_bound)
                             .map(|n| {
-                                let element_view = self.from_global_variable(GlobalVariable {
-                                    name: format!("{}[{}]", member.name.clone(), n),
-                                    address: address.as_ref().map(|addr| addr.add(size)),
-                                    type_ref: type_ref.clone(),
-                                });
+                                let mut address = address.clone();
+                                if let Some(ref mut addr) = address {
+                                    addr.add(size);
+                                }
+                                let element_view = self.from_global_variable(GlobalVariable::new(
+                                    address,
+                                    format!("{}[{}]", member.name.clone(), n),
+                                    type_ref.clone(),
+                                ));
                                 size += element_view.size();
                                 element_view
                             })
                             .collect(),
                     };
 
-                    *base_address = base_address.as_ref().map(|addr| addr.add(size));
+                    if let Some(addr) = base_address {
+                        addr.add(size);
+                    }
 
                     GlobalVariableView {
                         name: member.name.clone(),
