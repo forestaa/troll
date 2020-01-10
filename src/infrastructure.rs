@@ -3,6 +3,10 @@ pub mod fromelf {
         use crate::domain::global_variable_view::{GlobalVariableView, TypeView};
         use std::fmt;
 
+        const ADDRESS_WIDTH: usize = 10;
+        const SIZE_WIDTH: usize = 5;
+        const VARIABLE_NAME_WIDTH: usize = 20;
+
         pub struct FromElfStdOut {
             blocks: Vec<FromElfBlock>,
         }
@@ -54,8 +58,14 @@ pub mod fromelf {
 
             fn print(&self) {
                 println!(
-                    "{:10} {:05} {:20} {}",
-                    "address", "size", "variable_name", "type"
+                    "{:ADDRESS_WIDTH$} {:SIZE_WIDTH$} {:VARIABLE_NAME_WIDTH$} {}",
+                    "address",
+                    "size",
+                    "variable_name",
+                    "type",
+                    ADDRESS_WIDTH = ADDRESS_WIDTH,
+                    SIZE_WIDTH = SIZE_WIDTH,
+                    VARIABLE_NAME_WIDTH = VARIABLE_NAME_WIDTH
                 );
                 for line in &self.lines {
                     println!("{}", line);
@@ -75,8 +85,14 @@ pub mod fromelf {
                 let address = self.address.unwrap_or(0);
                 write!(
                     f,
-                    "{:#010x} {:#05x} {:20} {}",
-                    address, self.size, self.variable_name, self.variable_type
+                    "{:#0ADDRESS_WIDTH$x} {:#0SIZE_WIDTH$x} {:VARIABLE_NAME_WIDTH$} {}",
+                    address,
+                    self.size,
+                    self.variable_name,
+                    self.variable_type,
+                    ADDRESS_WIDTH = ADDRESS_WIDTH,
+                    SIZE_WIDTH = SIZE_WIDTH,
+                    VARIABLE_NAME_WIDTH = VARIABLE_NAME_WIDTH,
                 )
             }
         }
