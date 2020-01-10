@@ -9,6 +9,7 @@ use infrastructure::fromelf::stdout::FromElfStdOut;
 use usecase::DumpGlobalVariablesUsecase;
 
 fn main() {
+    env_logger::init();
     for path in env::args().skip(1) {
         dump_global_variables(path);
     }
