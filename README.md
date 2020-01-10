@@ -2,7 +2,10 @@
 Troll is an analyzer of the DWARF information embeded in ELF binary.
 This is inspired by [fromelf](http://www.keil.com/support/man/docs/armutil/default.htm), and written in [Rust](https://www.rust-lang.org/).
 
-# Examples
+## Features
+- Output static variable information
+
+## Examples
 ```
 $ git clone https://github.com/forestaa/troll.git
 $ cat examples/simple.c
