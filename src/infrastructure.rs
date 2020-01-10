@@ -139,17 +139,15 @@ pub mod fromelf {
                     TypeView::TypeDef { name, .. } => write!(f, "{}", name),
                     TypeView::Const { type_view } => write!(f, "const {}", type_view),
                     TypeView::VoidPointer => write!(f, "void pointer"),
-                    TypeView::Pointer { type_view } => write!(f, "pointer of {}", type_view),
+                    TypeView::Pointer { type_view } => write!(f, "pointer to {}", type_view),
                     TypeView::Base { name } => write!(f, "{}", name),
                     TypeView::Structure { name } => write!(f, "struct {}", name),
                     TypeView::Array {
                         element_type,
                         upper_bound,
                     } => match upper_bound {
-                        None => write!(f, "array[] of {}", element_type),
-                        Some(upper_bound) => {
-                            write!(f, "array[{}] of {}", upper_bound, element_type)
-                        }
+                        None => write!(f, "{}[]", element_type),
+                        Some(upper_bound) => write!(f, "{}[{}]", element_type, upper_bound),
                     },
                 }
             }
