@@ -1,3 +1,4 @@
+use log::error;
 use object::Object;
 use std::{borrow, fs};
 
@@ -168,14 +169,23 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                                 gimli::EvaluationResult::RequiresRelocatedAddress(address) => {
                                     result = eval.resume_with_relocated_address(address).unwrap()
                                 }
-                                _ => unimplemented!(),
+                                result => {
+                                    error!("Evaluation requires more information: {:?}", result);
+                                    unimplemented!()
+                                }
                             }
                         }
 
                         let result = eval.result();
-                        if let gimli::Location::Address { address } = result[0].location {
+                        if let Some(gimli::Location::Address { address }) =
+                            result.get(0).map(|piece| piece.location)
+                        {
                             address
                         } else {
+                            error!(
+                                "The head of Evaluation result is not address: results is {:?}",
+                                result
+                            );
                             unimplemented!()
                         }
                     })
