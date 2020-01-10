@@ -30,7 +30,7 @@ pub enum TypeEntryKind {
         members: Vec<StructureTypeMemberEntry>,
     },
     ArrayType {
-        type_ref: TypeEntryId,
+        element_type_ref: TypeEntryId,
         upper_bound: Option<usize>,
     },
 }
@@ -83,11 +83,11 @@ impl TypeEntry {
 
     pub fn new_array_type_entry(
         id: TypeEntryId,
-        type_ref: TypeEntryId,
+        element_type_ref: TypeEntryId,
         upper_bound: Option<usize>,
     ) -> TypeEntry {
         let kind = TypeEntryKind::ArrayType {
-            type_ref,
+            element_type_ref,
             upper_bound,
         };
         TypeEntry { id, kind }
