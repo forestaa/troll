@@ -158,7 +158,10 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                     .attr_value(gimli::DW_AT_location)
                     .unwrap()
                     .map(|location| {
-                        let mut eval = location.exprloc_value().unwrap().evaluation(self.encoding);
+                        let mut eval = location
+                            .exprloc_value()
+                            .expect("location attribute should be exprloc")
+                            .evaluation(self.encoding);
                         let mut result = eval.evaluate().unwrap();
                         while result != gimli::EvaluationResult::Complete {
                             match result {
@@ -280,7 +283,10 @@ pub fn with_dwarf_info_iterator<Output>(
 
     // Iterate over the compilation units.
     let mut iter = dwarf.units();
-    let header = iter.next().unwrap().unwrap();
+    let header = iter
+        .next()
+        .unwrap()
+        .expect("ELF binary should contain unit header");
     let unit = dwarf.unit(header).unwrap();
     let depth = 0;
     let mut entries = unit.entries();
