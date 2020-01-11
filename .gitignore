@@ -1,4 +1,7 @@
 /target
 **/*.rs.bk
 
-.vscode
+.vscode/*
+
+examples/*
+!examples/*.c
