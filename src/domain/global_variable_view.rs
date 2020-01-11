@@ -1,6 +1,7 @@
 use super::global_variable::{Address, GlobalVariable};
 use super::type_entry::{StructureTypeMemberEntry, TypeEntryId, TypeEntryKind};
 use super::type_entry_repository::TypeEntryRepository;
+use log::error;
 
 #[derive(Debug, Clone)]
 pub struct GlobalVariableView {
@@ -82,7 +83,14 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
             .type_entry_repository
             .find_by_id(global_variable.type_ref())
         {
-            None => unimplemented!(),
+            None => {
+                error!(
+                    "global variable refers unknown offset: variable: {}, refered offset {:?}",
+                    global_variable.name(),
+                    global_variable.type_ref()
+                );
+                unimplemented!()
+            }
             Some(type_entry) => match &type_entry.kind {
                 TypeEntryKind::TypeDef {
                     name: type_name,
@@ -243,7 +251,13 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
         base_address: &mut Option<Address>,
     ) -> GlobalVariableView {
         match self.type_entry_repository.find_by_id(&member.type_ref) {
-            None => unimplemented!(),
+            None => {
+                error!(
+                    "structure member refers unknown offset: member: {}, refered offset: {:?}",
+                    member.name, member.type_ref
+                );
+                unimplemented!()
+            }
             Some(type_entry) => match &type_entry.kind {
                 TypeEntryKind::TypeDef {
                     name: type_name,
@@ -481,7 +495,13 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
 
     fn type_view_from_type_entry(&self, type_entry_id: &TypeEntryId) -> TypeView {
         match self.type_entry_repository.find_by_id(type_entry_id) {
-            None => unimplemented!(),
+            None => {
+                error!(
+                    "something refers unknown offset: refered offset: {:?}",
+                    type_entry_id
+                );
+                unimplemented!()
+            }
             Some(type_entry) => match &type_entry.kind {
                 TypeEntryKind::TypeDef { name, type_ref } => TypeView::TypeDef {
                     name: name.clone(),
