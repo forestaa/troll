@@ -1,4 +1,6 @@
 [tasks.test]
+command = "cargo"
+args = ["test", "--", "${@}"]
 dependencies = ["elf-build"]
 
 [tasks.elf-build]

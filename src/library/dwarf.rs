@@ -317,6 +317,7 @@ mod test {
     use super::*;
 
     #[test]
+    #[ignore]
     fn with_dwarf_info_iterator_test() {
         with_dwarf_info_iterator(String::from("examples/simple"), |iter| {
             let mut expecteds = vec![
