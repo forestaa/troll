@@ -30,22 +30,6 @@ $ cargo run examples/simple  # You can run `./troll examples/simple` if you inst
 ...
 
 address    size  variable_name        type
-0x00000000 0x008 stdin                pointer to FILE
-
-address    size  variable_name        type
-0x00000000 0x008 stdout               pointer to FILE
-
-address    size  variable_name        type
-0x00000000 0x008 stderr               pointer to FILE
-
-address    size  variable_name        type
-0x00000000 0x004 sys_nerr             int
-
-address    size  variable_name        type
-0x00000000 0x008 sys_errlist          const const pointer to const char[]
-0x00000000 0x008 sys_errlist          const pointer to const char
-
-address    size  variable_name        type
 0x00004060 0x012 hoges                Hoge[2]
 0x00004060 0x009 hoges[0]             Hoge
 0x00004060 0x004 hoges[0].hoge        int
