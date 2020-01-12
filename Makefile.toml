@@ -1,0 +1,17 @@
+[tasks.test]
+command = "cargo"
+args = ["test", "--", "${@}"]
+dependencies = ["elf-build"]
+
+[tasks.elf-build]
+command = "make"
+args = ["-C", "examples", "all"]
+
+[tasks.elf-clean]
+command = "make"
+args = ["-C", "examples", "clean"]
+
+[tasks.test-flow]
+run_task = [
+  { name = ["test", "elf-clean"] }
+]

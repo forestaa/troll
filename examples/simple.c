@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 typedef struct hoge {
   int hoge;
   char hogehoge;
