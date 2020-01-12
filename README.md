@@ -5,6 +5,9 @@ This is inspired by [fromelf](http://www.keil.com/support/man/docs/armutil/defau
 ## Features
 - Output static variable information
 
+## Install
+- Downloads binaries from [Release](https://github.com/forestaa/troll/releases)
+
 ## Examples
 ```
 $ git clone https://github.com/forestaa/troll.git
@@ -23,7 +26,7 @@ int main(void) {
   return 0;
 }
 $ gcc -O0 -g -o examples/simple examples/simple.c
-$ cargo run examples/simple
+$ cargo run examples/simple  # You can run `./troll examples/simple` if you install a binary.
 ...
 
 address    size  variable_name        type
