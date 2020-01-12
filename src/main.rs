@@ -6,7 +6,7 @@ mod usecase;
 use std::env;
 
 use infrastructure::fromelf::stdout::FromElfStdOut;
-use usecase::DumpGlobalVariablesUsecase;
+use usecase::dump_global_variables::DumpGlobalVariablesUsecase;
 
 fn main() {
     env_logger::init();
