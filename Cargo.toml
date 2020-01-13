@@ -12,7 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 env_logger = "0.7.1"
-gimli = "0.19.0"
+gimli = "0.20.0"
 log = "0.4.8"
 memmap = "0.7.0"
 object = "0.17.0"

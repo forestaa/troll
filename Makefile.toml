@@ -1,7 +1,16 @@
-[tasks.test]
+[tasks.run]
 command = "cargo"
-args = ["test", "--", "${@}"]
+args = ["run", "${@}"]
 dependencies = ["elf-build"]
+
+[tasks.ignored-test-body]
+command = "cargo"
+args = ["test", "--", "--ignored"]
+dependencies = ["elf-build"]
+
+[tasks.ignored-test]
+dependencies = ["ignored-test-body"]
+run_task = "elf-clean"
 
 [tasks.elf-build]
 command = "make"
@@ -12,6 +21,7 @@ command = "make"
 args = ["-C", "examples", "clean"]
 
 [tasks.test-flow]
-run_task = [
-  { name = ["test", "elf-clean"] }
-]
+dependencies = ["test"]
+
+[tasks.all-test-flow]
+dependencies = ["test", "ignored-test"]
