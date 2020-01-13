@@ -65,18 +65,26 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                 DwarfTag::DW_TAG_structure_type => {
                     let id = TypeEntryId::new(entry.offset());
                     let name = entry.name().expect("structure_type entry should have name");
+                    let size = entry.size().expect("base_type entry should have size");
                     let members = entry
                         .children()
                         .iter()
                         .map(|entry| {
                             let name = entry.name().expect("member entry should have name");
+                            let location = entry
+                                .data_member_location()
+                                .expect("member entry should have data_member_location");
                             let type_ref = TypeEntryId::new(
                                 entry.type_offset().expect("member entry should have type"),
                             );
-                            StructureTypeMemberEntry { name, type_ref }
+                            StructureTypeMemberEntry {
+                                name,
+                                location,
+                                type_ref,
+                            }
                         })
                         .collect();
-                    let type_entry = TypeEntry::new_structure_type_entry(id, name, members);
+                    let type_entry = TypeEntry::new_structure_type_entry(id, name, size, members);
                     self.type_entry_repository.save(type_entry);
                 }
                 DwarfTag::DW_TAG_array_type => {
@@ -129,18 +137,21 @@ mod tests {
                         .offset(Offset::new(58))
                         .name("hoge")
                         .type_offset(Offset::new(98))
+                        .data_member_location(0)
                         .build(),
                     DwarfInfoBuilder::new()
                         .tag(DwarfTag::DW_TAG_unimplemented)
                         .offset(Offset::new(71))
                         .name("hogehoge")
                         .type_offset(Offset::new(105))
+                        .data_member_location(4)
                         .build(),
                     DwarfInfoBuilder::new()
                         .tag(DwarfTag::DW_TAG_unimplemented)
                         .offset(Offset::new(84))
                         .name("array")
                         .type_offset(Offset::new(112))
+                        .data_member_location(8)
                         .build(),
                 ])
                 .build(),
@@ -214,17 +225,21 @@ mod tests {
             TypeEntry::new_structure_type_entry(
                 TypeEntryId::new(Offset::new(45)),
                 String::from("hoge"),
+                16,
                 vec![
                     StructureTypeMemberEntry {
                         name: String::from("hoge"),
+                        location: 0,
                         type_ref: TypeEntryId::new(Offset::new(98)),
                     },
                     StructureTypeMemberEntry {
                         name: String::from("hogehoge"),
+                        location: 4,
                         type_ref: TypeEntryId::new(Offset::new(105)),
                     },
                     StructureTypeMemberEntry {
                         name: String::from("array"),
+                        location: 8,
                         type_ref: TypeEntryId::new(Offset::new(112)),
                     },
                 ],
