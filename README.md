@@ -30,16 +30,23 @@ $ cargo run examples/simple  # You can run `./troll examples/simple` if you inst
 ...
 
 address    size  variable_name        type
-0x00004060 0x012 hoges                Hoge[2]
-0x00004060 0x009 hoges[0]             Hoge
+0x00004060 0x030 hoges                Hoge[2]
+0x00004060 0x010 hoges[0]             Hoge
 0x00004060 0x004 hoges[0].hoge        int
 0x00004064 0x001 hoges[0].hogehoge    char
-0x00004065 0x004 hoges[0].array       int[1]
-0x00004065 0x004 hoges[0].array[0]    int
-0x00004069 0x009 hoges[1]             Hoge
-0x00004069 0x004 hoges[1].hoge        int
-0x0000406d 0x001 hoges[1].hogehoge    char
-0x0000406e 0x004 hoges[1].array       int[1]
-0x0000406e 0x004 hoges[1].array[0]    int
-
+0x00004068 0x008 hoges[0].array       int[1]
+0x00004068 0x004 hoges[0].array[0]    int
+0x0000406c 0x004 hoges[0].array[1]    int
+0x00004070 0x010 hoges[1]             Hoge
+0x00004070 0x004 hoges[1].hoge        int
+0x00004074 0x001 hoges[1].hogehoge    char
+0x00004078 0x008 hoges[1].array       int[1]
+0x00004078 0x004 hoges[1].array[0]    int
+0x0000407c 0x004 hoges[1].array[1]    int
+0x00004080 0x010 hoges[2]             Hoge
+0x00004080 0x004 hoges[2].hoge        int
+0x00004084 0x001 hoges[2].hogehoge    char
+0x00004088 0x008 hoges[2].array       int[1]
+0x00004088 0x004 hoges[2].array[0]    int
+0x0000408c 0x004 hoges[2].array[1]    int
 ```
