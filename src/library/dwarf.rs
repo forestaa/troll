@@ -71,27 +71,6 @@ pub struct DwarfInfo {
 }
 
 impl DwarfInfo {
-    pub fn new(
-        tag: DwarfTag,
-        offset: Offset,
-        name: Option<String>,
-        size: Option<usize>,
-        location: Option<Location>,
-        type_offset: Option<Offset>,
-        upper_bound: Option<usize>,
-        children: Vec<DwarfInfo>,
-    ) -> DwarfInfo {
-        DwarfInfo {
-            tag,
-            offset,
-            name,
-            size,
-            location,
-            type_offset,
-            upper_bound,
-            children,
-        }
-    }
     pub fn tag(&self) -> DwarfTag {
         self.tag.clone()
     }
@@ -125,7 +104,7 @@ impl DwarfInfo {
     }
 }
 
-struct DwarfInfoBuilder<TagP, OffsetP> {
+pub struct DwarfInfoBuilder<TagP, OffsetP> {
     tag: TagP,
     offset: OffsetP,
     name: Option<String>,
@@ -313,7 +292,7 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
 
             let current_depth = self.depth;
             match self.entries.next_dfs().unwrap() {
-                None => Some(DwarfInfo::new(
+                None => Some(DwarfInfo {
                     tag,
                     offset,
                     name,
@@ -321,8 +300,8 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                     location,
                     type_offset,
                     upper_bound,
-                    Vec::new(),
-                )),
+                    children: Vec::new(),
+                }),
                 Some((delta_depth, _)) => {
                     self.depth += delta_depth;
                     let mut children = Vec::new();
@@ -333,7 +312,7 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                             break;
                         }
                     }
-                    Some(DwarfInfo::new(
+                    Some(DwarfInfo {
                         tag,
                         offset,
                         name,
@@ -342,7 +321,7 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                         type_offset,
                         upper_bound,
                         children,
-                    ))
+                    })
                 }
             }
         } else {
