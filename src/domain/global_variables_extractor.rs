@@ -65,18 +65,26 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                 DwarfTag::DW_TAG_structure_type => {
                     let id = TypeEntryId::new(entry.offset());
                     let name = entry.name().expect("structure_type entry should have name");
+                    let size = entry.size().expect("base_type entry should have size");
                     let members = entry
                         .children()
                         .iter()
                         .map(|entry| {
                             let name = entry.name().expect("member entry should have name");
+                            let location = entry
+                                .data_member_location()
+                                .expect("member entry should have data_member_location");
                             let type_ref = TypeEntryId::new(
                                 entry.type_offset().expect("member entry should have type"),
                             );
-                            StructureTypeMemberEntry { name, type_ref }
+                            StructureTypeMemberEntry {
+                                name,
+                                location,
+                                type_ref,
+                            }
                         })
                         .collect();
-                    let type_entry = TypeEntry::new_structure_type_entry(id, name, members);
+                    let type_entry = TypeEntry::new_structure_type_entry(id, name, size, members);
                     self.type_entry_repository.save(type_entry);
                 }
                 DwarfTag::DW_TAG_array_type => {
@@ -98,5 +106,182 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
             }
         }
         global_variables
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::library::dwarf::{DwarfInfoBuilder, DwarfTag, Location, Offset};
+
+    fn init() {
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
+
+    #[test]
+    fn extract_test() {
+        init();
+
+        let mut type_entry_repository = TypeEntryRepository::new();
+        let mut global_variables_extractor =
+            GlobalVariablesExtractor::new(&mut type_entry_repository);
+        let dwarf_info_iterators = vec![
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_structure_type)
+                .offset(Offset::new(45))
+                .name("hoge")
+                .size(16)
+                .children(vec![
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset::new(58))
+                        .name("hoge")
+                        .type_offset(Offset::new(98))
+                        .data_member_location(0)
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset::new(71))
+                        .name("hogehoge")
+                        .type_offset(Offset::new(105))
+                        .data_member_location(4)
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset::new(84))
+                        .name("array")
+                        .type_offset(Offset::new(112))
+                        .data_member_location(8)
+                        .build(),
+                ])
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_base_type)
+                .offset(Offset::new(98))
+                .name("int")
+                .size(4)
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_base_type)
+                .offset(Offset::new(105))
+                .name("char")
+                .size(1)
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_array_type)
+                .offset(Offset::new(112))
+                .type_offset(Offset::new(98))
+                .children(vec![DwarfInfoBuilder::new()
+                    .tag(DwarfTag::DW_TAG_subrange_type)
+                    .offset(Offset::new(121))
+                    .type_offset(Offset::new(128))
+                    .upper_bound(1)
+                    .build()])
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_base_type)
+                .offset(Offset::new(128))
+                .name("long unsigned int")
+                .size(8)
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_typedef)
+                .offset(Offset::new(135))
+                .name("Hoge")
+                .type_offset(Offset::new(45))
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_array_type)
+                .offset(Offset::new(147))
+                .type_offset(Offset::new(135))
+                .children(vec![DwarfInfoBuilder::new()
+                    .tag(DwarfTag::DW_TAG_subrange_type)
+                    .offset(Offset::new(156))
+                    .type_offset(Offset::new(128))
+                    .upper_bound(2)
+                    .build()])
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_variable)
+                .offset(Offset::new(163))
+                .name("hoges")
+                .location(Location::new(16480))
+                .type_offset(Offset::new(147))
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .offset(Offset::new(185))
+                .name("main")
+                .type_offset(Offset::new(98))
+                .build(),
+        ];
+
+        let expected_variables = vec![GlobalVariable::new(
+            Some(Address::new(Location::new(16480))),
+            String::from("hoges"),
+            TypeEntryId::new(Offset::new(147)),
+        )];
+        let expected_types = vec![
+            TypeEntry::new_structure_type_entry(
+                TypeEntryId::new(Offset::new(45)),
+                String::from("hoge"),
+                16,
+                vec![
+                    StructureTypeMemberEntry {
+                        name: String::from("hoge"),
+                        location: 0,
+                        type_ref: TypeEntryId::new(Offset::new(98)),
+                    },
+                    StructureTypeMemberEntry {
+                        name: String::from("hogehoge"),
+                        location: 4,
+                        type_ref: TypeEntryId::new(Offset::new(105)),
+                    },
+                    StructureTypeMemberEntry {
+                        name: String::from("array"),
+                        location: 8,
+                        type_ref: TypeEntryId::new(Offset::new(112)),
+                    },
+                ],
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(98)),
+                String::from("int"),
+                4,
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(105)),
+                String::from("char"),
+                1,
+            ),
+            TypeEntry::new_array_type_entry(
+                TypeEntryId::new(Offset::new(112)),
+                TypeEntryId::new(Offset::new(98)),
+                Some(1),
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(128)),
+                String::from("long unsigned int"),
+                8,
+            ),
+            TypeEntry::new_typedef_entry(
+                TypeEntryId::new(Offset::new(135)),
+                String::from("Hoge"),
+                TypeEntryId::new(Offset::new(45)),
+            ),
+            TypeEntry::new_array_type_entry(
+                TypeEntryId::new(Offset::new(147)),
+                TypeEntryId::new(Offset::new(135)),
+                Some(2),
+            ),
+        ];
+        let got_variables = global_variables_extractor.extract(dwarf_info_iterators.into_iter());
+        assert_eq!(expected_variables, got_variables);
+        for expected_type in expected_types {
+            let got_type = type_entry_repository
+                .find_by_id(&expected_type.id())
+                .map(TypeEntry::clone);
+            assert_eq!(Some(expected_type), got_type);
+        }
     }
 }

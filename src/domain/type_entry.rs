@@ -8,7 +8,7 @@ impl TypeEntryId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TypeEntryKind {
     TypeDef {
         name: String,
@@ -27,6 +27,7 @@ pub enum TypeEntryKind {
     },
     StructureType {
         name: String,
+        size: usize,
         members: Vec<StructureTypeMemberEntry>,
     },
     ArrayType {
@@ -35,13 +36,14 @@ pub enum TypeEntryKind {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct StructureTypeMemberEntry {
     pub name: String,
+    pub location: usize,
     pub type_ref: TypeEntryId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TypeEntry {
     id: TypeEntryId,
     pub kind: TypeEntryKind,
@@ -75,9 +77,14 @@ impl TypeEntry {
     pub fn new_structure_type_entry(
         id: TypeEntryId,
         name: String,
+        size: usize,
         members: Vec<StructureTypeMemberEntry>,
     ) -> TypeEntry {
-        let kind = TypeEntryKind::StructureType { name, members };
+        let kind = TypeEntryKind::StructureType {
+            name,
+            size,
+            members,
+        };
         TypeEntry { id, kind }
     }
 

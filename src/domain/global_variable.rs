@@ -2,7 +2,7 @@ use crate::library::dwarf;
 
 use super::type_entry::TypeEntryId;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Address(dwarf::Location);
 impl Address {
     pub fn new(location: dwarf::Location) -> Address {
@@ -20,7 +20,7 @@ impl Into<usize> for Address {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct GlobalVariable {
     address: Option<Address>,
     name: String,
