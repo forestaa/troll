@@ -8,7 +8,7 @@ impl TypeEntryId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TypeEntryKind {
     TypeDef {
         name: String,
@@ -35,13 +35,13 @@ pub enum TypeEntryKind {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct StructureTypeMemberEntry {
     pub name: String,
     pub type_ref: TypeEntryId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TypeEntry {
     id: TypeEntryId,
     pub kind: TypeEntryKind,
