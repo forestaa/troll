@@ -1,3 +1,8 @@
+[tasks.run]
+command = "cargo"
+args = ["run", "${@}"]
+dependencies = ["elf-build"]
+
 [tasks.ignored-test-body]
 command = "cargo"
 args = ["test", "--", "--ignored"]
