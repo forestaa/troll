@@ -106,16 +106,17 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                 TypeEntryKind::PointerType { size, type_ref } => {
                     self.from_global_variable_pointer_type(global_variable, *size, type_ref)
                 }
-                TypeEntryKind::BaseType { name, size } => {
-                    self.from_global_variable_base_type(global_variable, name.clone(), *size)
-                }
+                TypeEntryKind::BaseType {
+                    name: type_name,
+                    size,
+                } => self.from_global_variable_base_type(global_variable, type_name.clone(), *size),
                 TypeEntryKind::StructureType {
-                    name,
+                    name: type_name,
                     size,
                     members,
                 } => self.from_global_variable_structure_type(
                     global_variable,
-                    name.clone(),
+                    type_name.clone(),
                     *size,
                     members,
                 ),
@@ -219,7 +220,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
 
         GlobalVariableView {
             name: global_variable.name(),
-            address: global_variable.address(),
+            address: base_address,
             size: size,
             type_view: TypeView::Structure { name: type_name },
             children: members,
@@ -289,21 +290,23 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                         type_ref.as_ref(),
                         *size,
                     ),
-                TypeEntryKind::BaseType { name, size } => self
-                    .from_structure_type_member_entry_base_type(
-                        member,
-                        base_address,
-                        name.clone(),
-                        *size,
-                    ),
+                TypeEntryKind::BaseType {
+                    name: type_name,
+                    size,
+                } => self.from_structure_type_member_entry_base_type(
+                    member,
+                    base_address,
+                    type_name.clone(),
+                    *size,
+                ),
                 TypeEntryKind::StructureType {
-                    name,
+                    name: type_name,
                     size,
                     members,
                 } => self.from_structure_type_member_entry_structure_type(
                     member,
                     base_address,
-                    name.clone(),
+                    type_name.clone(),
                     *size,
                     members,
                 ),
@@ -432,7 +435,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
 
         GlobalVariableView {
             name: member.name.clone(),
-            address: address.clone(),
+            address: address,
             size: size,
             type_view: TypeView::Structure { name: type_name },
             children: members,
