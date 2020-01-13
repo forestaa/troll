@@ -109,9 +109,16 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                 TypeEntryKind::BaseType { name, size } => {
                     self.from_global_variable_base_type(global_variable, name.clone(), *size)
                 }
-                TypeEntryKind::StructureType { name, members } => {
-                    self.from_global_variable_structure_type(global_variable, name.clone(), members)
-                }
+                TypeEntryKind::StructureType {
+                    name,
+                    size,
+                    members,
+                } => self.from_global_variable_structure_type(
+                    global_variable,
+                    name.clone(),
+                    *size,
+                    members,
+                ),
                 TypeEntryKind::ArrayType {
                     element_type_ref,
                     upper_bound,
@@ -201,14 +208,15 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
         &self,
         global_variable: GlobalVariable,
         type_name: String,
+        size: usize,
         members: &Vec<StructureTypeMemberEntry>,
     ) -> GlobalVariableView {
-        let mut base_address = global_variable.address();
+        let base_address = global_variable.address();
         let members: Vec<GlobalVariableView> = members
             .iter()
-            .map(|member| self.from_structure_type_member_entry(member, &mut base_address))
+            .map(|member| self.from_structure_type_member_entry(member, &base_address))
             .collect();
-        let size = members.iter().map(|member| member.size()).sum();
+        // let size = members.iter().map(|member| member.size()).sum();
         GlobalVariableView {
             name: global_variable.name(),
             address: global_variable.address(),
@@ -235,7 +243,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
 
         GlobalVariableView {
             name: global_variable.name(),
-            address: global_variable.address(),
+            address: address,
             size: size,
             type_view: TypeView::Array {
                 element_type: Box::new(type_view),
@@ -248,7 +256,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
     fn from_structure_type_member_entry(
         &self,
         member: &StructureTypeMemberEntry,
-        base_address: &mut Option<Address>,
+        base_address: &Option<Address>,
     ) -> GlobalVariableView {
         match self.type_entry_repository.find_by_id(&member.type_ref) {
             None => {
@@ -288,13 +296,17 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                         name.clone(),
                         *size,
                     ),
-                TypeEntryKind::StructureType { name, members } => self
-                    .from_structure_type_member_entry_structure_type(
-                        member,
-                        base_address,
-                        name.clone(),
-                        members,
-                    ),
+                TypeEntryKind::StructureType {
+                    name,
+                    size,
+                    members,
+                } => self.from_structure_type_member_entry_structure_type(
+                    member,
+                    base_address,
+                    name.clone(),
+                    *size,
+                    members,
+                ),
                 TypeEntryKind::ArrayType {
                     element_type_ref,
                     upper_bound,
@@ -311,12 +323,13 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
     fn from_structure_type_member_entry_typedef(
         &self,
         member: &StructureTypeMemberEntry,
-        base_address: &mut Option<Address>,
+        base_address: &Option<Address>,
         type_name: String,
         type_ref: TypeEntryId,
     ) -> GlobalVariableView {
         let member = StructureTypeMemberEntry {
             name: member.name.clone(),
+            location: member.location,
             type_ref: type_ref,
         };
         let mut member_view = self.from_structure_type_member_entry(&member, base_address);
@@ -331,11 +344,12 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
     fn from_structure_type_member_entry_const_type(
         &self,
         member: &StructureTypeMemberEntry,
-        base_address: &mut Option<Address>,
+        base_address: &Option<Address>,
         type_ref: TypeEntryId,
     ) -> GlobalVariableView {
         let member = StructureTypeMemberEntry {
             name: member.name.clone(),
+            location: member.location,
             type_ref: type_ref,
         };
         let mut member_view = self.from_structure_type_member_entry(&member, base_address);
@@ -349,13 +363,13 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
     fn from_structure_type_member_entry_pointer_type(
         &self,
         member: &StructureTypeMemberEntry,
-        base_address: &mut Option<Address>,
+        base_address: &Option<Address>,
         type_ref: Option<&TypeEntryId>,
         size: usize,
     ) -> GlobalVariableView {
-        let address = base_address.clone();
-        if let Some(addr) = base_address {
-            addr.add(size);
+        let mut address = base_address.clone();
+        if let Some(ref mut addr) = address {
+            addr.add(member.location);
         }
 
         match type_ref {
@@ -381,13 +395,13 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
     fn from_structure_type_member_entry_base_type(
         &self,
         member: &StructureTypeMemberEntry,
-        base_address: &mut Option<Address>,
+        base_address: &Option<Address>,
         type_name: String,
         size: usize,
     ) -> GlobalVariableView {
-        let address = base_address.clone();
-        if let Some(addr) = base_address {
-            addr.add(size);
+        let mut address = base_address.clone();
+        if let Some(ref mut addr) = address {
+            addr.add(member.location);
         }
 
         GlobalVariableView {
@@ -402,20 +416,23 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
     fn from_structure_type_member_entry_structure_type(
         &self,
         member: &StructureTypeMemberEntry,
-        base_address: &mut Option<Address>,
+        base_address: &Option<Address>,
         type_name: String,
+        size: usize,
         members: &Vec<StructureTypeMemberEntry>,
     ) -> GlobalVariableView {
-        let address = base_address.clone();
+        let mut address = base_address.clone();
+        if let Some(ref mut addr) = address {
+            addr.add(member.location);
+        }
         let members: Vec<GlobalVariableView> = members
             .iter()
-            .map(|member| self.from_structure_type_member_entry(member, base_address))
+            .map(|member| self.from_structure_type_member_entry(member, &address))
             .collect();
-        let size = members.iter().map(|member| member.size()).sum();
 
         GlobalVariableView {
             name: member.name.clone(),
-            address: address,
+            address: address.clone(),
             size: size,
             type_view: TypeView::Structure { name: type_name },
             children: members,
@@ -425,11 +442,15 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
     fn from_structure_type_member_entry_array_type(
         &self,
         member: &StructureTypeMemberEntry,
-        base_address: &mut Option<Address>,
+        base_address: &Option<Address>,
         element_type_ref: &TypeEntryId,
         upper_bound: Option<usize>,
     ) -> GlobalVariableView {
-        let address = base_address.clone();
+        let mut address = base_address.clone();
+        if let Some(ref mut addr) = address {
+            addr.add(member.location);
+        }
+
         let type_view = self.type_view_from_type_entry(element_type_ref);
         let (elements, size) = self.array_elements(
             member.name.clone(),
@@ -437,10 +458,6 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
             upper_bound,
             element_type_ref.clone(),
         );
-
-        if let Some(addr) = base_address {
-            addr.add(size);
-        }
 
         GlobalVariableView {
             name: member.name.clone(),
@@ -473,7 +490,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
             }
             Some(upper_bound) => {
                 let mut size = 0;
-                let elements = (0..upper_bound)
+                let elements = (0..=upper_bound)
                     .map(|n| {
                         let mut address = address.clone();
                         if let Some(ref mut addr) = address {
@@ -551,17 +568,21 @@ mod tests {
             TypeEntry::new_structure_type_entry(
                 TypeEntryId::new(Offset::new(45)),
                 String::from("hoge"),
+                16,
                 vec![
                     StructureTypeMemberEntry {
                         name: String::from("hoge"),
+                        location: 0,
                         type_ref: TypeEntryId::new(Offset::new(98)),
                     },
                     StructureTypeMemberEntry {
                         name: String::from("hogehoge"),
+                        location: 4,
                         type_ref: TypeEntryId::new(Offset::new(105)),
                     },
                     StructureTypeMemberEntry {
                         name: String::from("array"),
+                        location: 8,
                         type_ref: TypeEntryId::new(Offset::new(112)),
                     },
                 ],
@@ -611,7 +632,7 @@ mod tests {
         let expected_view = GlobalVariableView {
             name: String::from("hoges"),
             address: Some(Address::new(Location::new(16480))),
-            size: 32,
+            size: 48,
             type_view: TypeView::Array {
                 element_type: Box::new(TypeView::TypeDef {
                     name: String::from("Hoge"),
