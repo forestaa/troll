@@ -216,7 +216,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
             .iter()
             .map(|member| self.from_structure_type_member_entry(member, &base_address))
             .collect();
-        // let size = members.iter().map(|member| member.size()).sum();
+
         GlobalVariableView {
             name: global_variable.name(),
             address: global_variable.address(),
