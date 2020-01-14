@@ -20,18 +20,22 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
         for entry in entries {
             match entry.tag() {
                 DwarfTag::DW_TAG_variable => {
-                    let name = entry.name().expect("variable entry should have name");
+                    let name = entry.name().expect(&Self::expect_error_message(
+                        "variable entry should have name",
+                        &entry,
+                    ));
                     let address = entry.location().map(Address::new);
-                    let type_ref = TypeEntryId::new(
-                        entry
-                            .type_offset()
-                            .expect("variable entry should have type"),
-                    );
+                    let type_ref = TypeEntryId::new(entry.type_offset().expect(
+                        &Self::expect_error_message("variable entry should have type", &entry),
+                    ));
                     global_variables.push(GlobalVariable::new(address, name, type_ref));
                 }
                 DwarfTag::DW_TAG_typedef => {
                     let id = TypeEntryId::new(entry.offset());
-                    let name = entry.name().expect("typedef entry should have name");
+                    let name = entry.name().expect(&Self::expect_error_message(
+                        "typedef entry should have name",
+                        &entry,
+                    ));
                     if let Some(type_ref) = entry.type_offset() {
                         let type_ref = TypeEntryId::new(type_ref);
                         let type_entry = TypeEntry::new_typedef_entry(id, name, type_ref);
@@ -40,43 +44,66 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                 }
                 DwarfTag::DW_TAG_const_type => {
                     let id = TypeEntryId::new(entry.offset());
-                    let type_ref = TypeEntryId::new(
-                        entry
-                            .type_offset()
-                            .expect("const_type entry should have type"),
-                    );
+                    let type_ref = TypeEntryId::new(entry.type_offset().expect(
+                        &Self::expect_error_message("const_type entry should have type", &entry),
+                    ));
                     let type_entry = TypeEntry::new_const_type_entry(id, type_ref);
                     self.type_entry_repository.save(type_entry);
                 }
                 DwarfTag::DW_TAG_pointer_type => {
                     let id = TypeEntryId::new(entry.offset());
-                    let size = entry.size().expect("pointer_type entry should have size");
+                    let size = entry.size().expect(&Self::expect_error_message(
+                        "pointer_type entry should have size",
+                        &entry,
+                    ));
                     let type_ref = entry.type_offset().map(TypeEntryId::new);
                     let type_entry = TypeEntry::new_pointer_type_entry(id, size, type_ref);
                     self.type_entry_repository.save(type_entry);
                 }
                 DwarfTag::DW_TAG_base_type => {
                     let id = TypeEntryId::new(entry.offset());
-                    let name = entry.name().expect("base_type entry should have name");
-                    let size = entry.size().expect("base_type entry should have size");
+                    let name = entry.name().expect(&Self::expect_error_message(
+                        "base_type entry should have name",
+                        &entry,
+                    ));
+                    let size = entry.size().expect(&Self::expect_error_message(
+                        "base_type entry should have size",
+                        &entry,
+                    ));
                     let type_entry = TypeEntry::new_base_type_entry(id, name, size);
                     self.type_entry_repository.save(type_entry);
                 }
                 DwarfTag::DW_TAG_structure_type => {
                     let id = TypeEntryId::new(entry.offset());
-                    let name = entry.name().expect("structure_type entry should have name");
-                    let size = entry.size().expect("base_type entry should have size");
+                    let name = entry.name().expect(&Self::expect_error_message(
+                        "structure_type entry should have name",
+                        &entry,
+                    ));
+                    let size = entry.size().expect(&Self::expect_error_message(
+                        "structure_type entry should have size",
+                        &entry,
+                    ));
                     let members = entry
                         .children()
                         .iter()
                         .map(|entry| {
-                            let name = entry.name().expect("member entry should have name");
-                            let location = entry
-                                .data_member_location()
-                                .expect("member entry should have data_member_location");
-                            let type_ref = TypeEntryId::new(
-                                entry.type_offset().expect("member entry should have type"),
-                            );
+                            let name = entry.name().expect(&Self::expect_error_message(
+                                "member entry should have name",
+                                &entry,
+                            ));
+                            let location =
+                                entry
+                                    .data_member_location()
+                                    .expect(&Self::expect_error_message(
+                                        "member entry should have data_member_location",
+                                        &entry,
+                                    ));
+                            let type_ref = TypeEntryId::new(entry.type_offset().expect(
+                                &Self::expect_error_message(
+                                    "member entry should have type",
+                                    &entry,
+                                ),
+                            ));
                             StructureTypeMemberEntry {
                                 name,
                                 location,
@@ -89,11 +116,9 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                 }
                 DwarfTag::DW_TAG_array_type => {
                     let id = TypeEntryId::new(entry.offset());
-                    let type_ref = TypeEntryId::new(
-                        entry
-                            .type_offset()
-                            .expect("array_type entry should have type"),
-                    );
+                    let type_ref = TypeEntryId::new(entry.type_offset().expect(
+                        &Self::expect_error_message("array_type entry should have type", &entry),
+                    ));
                     let upper_bound = entry.children().iter().find_map(|child| match child.tag() {
                         DwarfTag::DW_TAG_subrange_type => child.upper_bound(),
                         _ => None,
@@ -106,6 +131,11 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
             }
         }
         global_variables
+    }
+
+    fn expect_error_message(message: &str, entry: &DwarfInfo) -> String {
+        let offset: usize = entry.offset().into();
+        format!("{}: offset = {:#x}", message, offset)
     }
 }
 
