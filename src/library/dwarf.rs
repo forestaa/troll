@@ -10,6 +10,12 @@ impl Offset {
     }
 }
 
+impl Into<usize> for Offset {
+    fn into(self) -> usize {
+        self.0
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Location(usize);
 impl Location {
@@ -258,7 +264,10 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                     .map(|location| {
                         let mut eval = location
                             .exprloc_value()
-                            .expect("location attribute should be exprloc")
+                            .expect(&Self::expect_error_message(
+                                "location attribute should be exprloc",
+                                &entry,
+                            ))
                             .evaluation(self.encoding);
                         let mut result = eval.evaluate().unwrap();
                         while result != gimli::EvaluationResult::Complete {
@@ -352,6 +361,13 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
         } else {
             None
         }
+    }
+
+    fn expect_error_message(
+        message: &str,
+        entry: &gimli::DebuggingInformationEntry<gimli::read::EndianSlice<gimli::RunTimeEndian>>,
+    ) -> String {
+        format!("{}: offset = {:#x}", message, entry.offset().0)
     }
 }
 
