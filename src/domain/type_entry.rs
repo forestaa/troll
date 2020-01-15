@@ -8,6 +8,19 @@ impl TypeEntryId {
     }
 }
 
+impl Into<dwarf::Offset> for TypeEntryId {
+    fn into(self) -> dwarf::Offset {
+        self.0
+    }
+}
+
+impl Into<usize> for TypeEntryId {
+    fn into(self) -> usize {
+        let offset: dwarf::Offset = self.into();
+        offset.into()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum TypeEntryKind {
     TypeDef {
