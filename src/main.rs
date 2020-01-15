@@ -3,13 +3,14 @@ mod infrastructure;
 mod library;
 mod usecase;
 
+use env_logger::Env;
 use std::env;
 
 use infrastructure::fromelf::stdout::FromElfStdOut;
 use usecase::dump_global_variables::DumpGlobalVariablesUsecase;
 
 fn main() {
-    env_logger::init();
+    env_logger::from_env(Env::default().default_filter_or("warn")).init();
     for path in env::args().skip(1) {
         dump_global_variables(path);
     }
