@@ -69,7 +69,7 @@ pub struct DwarfInfo {
     tag: DwarfTag,
     offset: Offset,
     name: Option<String>,
-    size: Option<usize>,
+    byte_size: Option<usize>,
     location: Option<Location>,
     type_offset: Option<Offset>,
     upper_bound: Option<usize>,
@@ -87,7 +87,7 @@ impl DwarfInfo {
     }
 
     pub fn size(&self) -> Option<usize> {
-        self.size
+        self.byte_size
     }
 
     pub fn offset(&self) -> Offset {
@@ -119,7 +119,7 @@ pub struct DwarfInfoBuilder<TagP, OffsetP> {
     tag: TagP,
     offset: OffsetP,
     name: Option<String>,
-    size: Option<usize>,
+    byte_size: Option<usize>,
     location: Option<Location>,
     type_offset: Option<Offset>,
     upper_bound: Option<usize>,
@@ -133,7 +133,7 @@ impl DwarfInfoBuilder<(), ()> {
             tag: (),
             offset: (),
             name: None,
-            size: None,
+            byte_size: None,
             location: None,
             type_offset: None,
             upper_bound: None,
@@ -149,7 +149,7 @@ impl DwarfInfoBuilder<DwarfTag, Offset> {
             tag: self.tag,
             offset: self.offset,
             name: self.name,
-            size: self.size,
+            byte_size: self.byte_size,
             location: self.location,
             type_offset: self.type_offset,
             upper_bound: self.upper_bound,
@@ -165,7 +165,7 @@ impl<OffsetP> DwarfInfoBuilder<(), OffsetP> {
             tag: tag,
             offset: self.offset,
             name: self.name,
-            size: self.size,
+            byte_size: self.byte_size,
             location: self.location,
             type_offset: self.type_offset,
             upper_bound: self.upper_bound,
@@ -181,7 +181,7 @@ impl<TagP> DwarfInfoBuilder<TagP, ()> {
             tag: self.tag,
             offset: offset,
             name: self.name,
-            size: self.size,
+            byte_size: self.byte_size,
             location: self.location,
             type_offset: self.type_offset,
             upper_bound: self.upper_bound,
@@ -197,8 +197,8 @@ impl<TagP, OffsetP> DwarfInfoBuilder<TagP, OffsetP> {
         self
     }
 
-    pub fn size(mut self, size: usize) -> Self {
-        self.size = Some(size);
+    pub fn byte_size(mut self, size: usize) -> Self {
+        self.byte_size = Some(size);
         self
     }
 
@@ -250,11 +250,11 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                 .map(String::from);
             let tag = DwarfTag::from(entry.tag());
             let offset = Offset::new(entry.offset().0);
-            let size = entry
+            let byte_size = entry
                 .attr_value(gimli::DW_AT_byte_size)
                 .unwrap()
                 .and_then(|value| value.udata_value())
-                .map(|size| size as usize);
+                .map(|byte_size| byte_size as usize);
             // TODO: always should get location
             // Currently not because handling RequiresFrameBase from Evaluation is needed
             let location = match tag {
@@ -328,7 +328,7 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                     tag,
                     offset,
                     name,
-                    size,
+                    byte_size,
                     location,
                     type_offset,
                     upper_bound,
@@ -349,7 +349,7 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                         tag,
                         offset,
                         name,
-                        size,
+                        byte_size,
                         location,
                         type_offset,
                         upper_bound,
@@ -453,7 +453,7 @@ mod test {
                 .tag(DwarfTag::DW_TAG_structure_type)
                 .offset(Offset(45))
                 .name("hoge")
-                .size(16)
+                .byte_size(16)
                 .children(vec![
                     DwarfInfoBuilder::new()
                         .tag(DwarfTag::DW_TAG_unimplemented)
@@ -482,13 +482,13 @@ mod test {
                 .tag(DwarfTag::DW_TAG_base_type)
                 .offset(Offset(98))
                 .name("int")
-                .size(4)
+                .byte_size(4)
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_base_type)
                 .offset(Offset(105))
                 .name("char")
-                .size(1)
+                .byte_size(1)
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_array_type)
@@ -505,7 +505,7 @@ mod test {
                 .tag(DwarfTag::DW_TAG_base_type)
                 .offset(Offset(128))
                 .name("long unsigned int")
-                .size(8)
+                .byte_size(8)
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_typedef)

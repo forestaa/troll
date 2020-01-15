@@ -25,8 +25,8 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                         Some(name) => name,
                         None => {
                             Self::warning_no_expected_attribute(
-                        "variable entry should have name",
-                        &entry,
+                                "variable entry should have name",
+                                &entry,
                             );
                             continue;
                         }
@@ -50,8 +50,8 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                         Some(name) => name,
                         None => {
                             Self::warning_no_expected_attribute(
-                        "typedef entry should have name",
-                        &entry,
+                                "typedef entry should have name",
+                                &entry,
                             );
                             continue;
                         }
@@ -66,9 +66,9 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                             continue;
                         }
                     };
-                        let type_entry = TypeEntry::new_typedef_entry(id, name, type_ref);
-                        self.type_entry_repository.save(type_entry);
-                    }
+                    let type_entry = TypeEntry::new_typedef_entry(id, name, type_ref);
+                    self.type_entry_repository.save(type_entry);
+                }
                 DwarfTag::DW_TAG_const_type => {
                     let id = TypeEntryId::new(entry.offset());
                     let type_ref = match entry.type_offset() {
@@ -91,8 +91,8 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                         Some(size) => size,
                         None => {
                             Self::warning_no_expected_attribute(
-                        "pointer_type entry should have size",
-                        &entry,
+                                "pointer_type entry should have size",
+                                &entry,
                             );
                             continue;
                         }
@@ -107,8 +107,8 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                         Some(name) => name,
                         None => {
                             Self::warning_no_expected_attribute(
-                        "base_type entry should have name",
-                        &entry,
+                                "base_type entry should have name",
+                                &entry,
                             );
                             continue;
                         }
@@ -118,8 +118,8 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                         Some(size) => size,
                         None => {
                             Self::warning_no_expected_attribute(
-                        "base_type entry should have size",
-                        &entry,
+                                "base_type entry should have size",
+                                &entry,
                             );
                             continue;
                         }
@@ -134,8 +134,8 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                         Some(name) => name,
                         None => {
                             Self::warning_no_expected_attribute(
-                        "structure_type entry should have name",
-                        &entry,
+                                "structure_type entry should have name",
+                                &entry,
                             );
                             continue;
                         }
@@ -144,8 +144,8 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                         Some(size) => size,
                         None => {
                             Self::warning_no_expected_attribute(
-                        "structure_type entry should have size",
-                        &entry,
+                                "structure_type entry should have size",
+                                &entry,
                             );
                             continue;
                         }
@@ -156,15 +156,15 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                         .flat_map(|entry| {
                             let name = entry.name().or_else(|| {
                                 Self::warning_no_expected_attribute(
-                                "member entry should have name",
-                                &entry,
+                                    "member entry should have name",
+                                    &entry,
                                 );
                                 None
                             })?;
                             let location = entry.data_member_location().or_else(|| {
                                 Self::warning_no_expected_attribute(
-                                        "member entry should have data_member_location",
-                                        &entry,
+                                    "member entry should have data_member_location",
+                                    &entry,
                                 );
                                 None
                             })?;
@@ -172,8 +172,8 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                                 Some(type_ref) => Some(TypeEntryId::new(type_ref)),
                                 None => {
                                     Self::warning_no_expected_attribute(
-                                    "member entry should have type",
-                                    &entry,
+                                        "member entry should have type",
+                                        &entry,
                                     );
                                     None
                                 }
@@ -242,7 +242,7 @@ mod tests {
                 .tag(DwarfTag::DW_TAG_structure_type)
                 .offset(Offset::new(45))
                 .name("hoge")
-                .size(16)
+                .byte_size(16)
                 .children(vec![
                     DwarfInfoBuilder::new()
                         .tag(DwarfTag::DW_TAG_unimplemented)
@@ -271,13 +271,13 @@ mod tests {
                 .tag(DwarfTag::DW_TAG_base_type)
                 .offset(Offset::new(98))
                 .name("int")
-                .size(4)
+                .byte_size(4)
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_base_type)
                 .offset(Offset::new(105))
                 .name("char")
-                .size(1)
+                .byte_size(1)
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_array_type)
@@ -294,7 +294,7 @@ mod tests {
                 .tag(DwarfTag::DW_TAG_base_type)
                 .offset(Offset::new(128))
                 .name("long unsigned int")
-                .size(8)
+                .byte_size(8)
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_typedef)
