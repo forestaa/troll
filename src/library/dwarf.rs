@@ -115,119 +115,6 @@ impl DwarfInfo {
     }
 }
 
-pub struct DwarfInfoBuilder<TagP, OffsetP> {
-    tag: TagP,
-    offset: OffsetP,
-    name: Option<String>,
-    byte_size: Option<usize>,
-    location: Option<Location>,
-    type_offset: Option<Offset>,
-    upper_bound: Option<usize>,
-    data_member_location: Option<usize>,
-    children: Vec<DwarfInfo>,
-}
-
-impl DwarfInfoBuilder<(), ()> {
-    pub fn new() -> Self {
-        DwarfInfoBuilder {
-            tag: (),
-            offset: (),
-            name: None,
-            byte_size: None,
-            location: None,
-            type_offset: None,
-            upper_bound: None,
-            data_member_location: None,
-            children: Vec::new(),
-        }
-    }
-}
-
-impl DwarfInfoBuilder<DwarfTag, Offset> {
-    pub fn build(self) -> DwarfInfo {
-        DwarfInfo {
-            tag: self.tag,
-            offset: self.offset,
-            name: self.name,
-            byte_size: self.byte_size,
-            location: self.location,
-            type_offset: self.type_offset,
-            upper_bound: self.upper_bound,
-            data_member_location: self.data_member_location,
-            children: self.children,
-        }
-    }
-}
-
-impl<OffsetP> DwarfInfoBuilder<(), OffsetP> {
-    pub fn tag(self, tag: DwarfTag) -> DwarfInfoBuilder<DwarfTag, OffsetP> {
-        DwarfInfoBuilder {
-            tag: tag,
-            offset: self.offset,
-            name: self.name,
-            byte_size: self.byte_size,
-            location: self.location,
-            type_offset: self.type_offset,
-            upper_bound: self.upper_bound,
-            data_member_location: self.data_member_location,
-            children: self.children,
-        }
-    }
-}
-
-impl<TagP> DwarfInfoBuilder<TagP, ()> {
-    pub fn offset(self, offset: Offset) -> DwarfInfoBuilder<TagP, Offset> {
-        DwarfInfoBuilder {
-            tag: self.tag,
-            offset: offset,
-            name: self.name,
-            byte_size: self.byte_size,
-            location: self.location,
-            type_offset: self.type_offset,
-            upper_bound: self.upper_bound,
-            data_member_location: self.data_member_location,
-            children: self.children,
-        }
-    }
-}
-
-impl<TagP, OffsetP> DwarfInfoBuilder<TagP, OffsetP> {
-    pub fn name<S: Into<String>>(mut self, name: S) -> Self {
-        self.name = Some(name.into());
-        self
-    }
-
-    pub fn byte_size(mut self, size: usize) -> Self {
-        self.byte_size = Some(size);
-        self
-    }
-
-    pub fn location(mut self, location: Location) -> Self {
-        self.location = Some(location);
-        self
-    }
-
-    pub fn type_offset(mut self, type_offset: Offset) -> Self {
-        self.type_offset = Some(type_offset);
-        self
-    }
-
-    pub fn upper_bound(mut self, upper_bound: usize) -> Self {
-        self.upper_bound = Some(upper_bound);
-        self
-    }
-
-    pub fn data_member_location(mut self, data_member_location: usize) -> Self {
-        self.data_member_location = Some(data_member_location);
-        self
-    }
-
-    pub fn children(mut self, children: Vec<DwarfInfo>) -> Self {
-        self.children = children;
-        self
-    }
-}
-
 pub struct DwarfInfoIterator<'abbrev, 'unit, 'input> {
     entries: gimli::read::EntriesCursor<
         'abbrev,
@@ -438,6 +325,119 @@ pub fn with_dwarf_info_iterator<Output>(
 #[cfg(test)]
 mod test {
     use super::*;
+
+    pub struct DwarfInfoBuilder<TagP, OffsetP> {
+        tag: TagP,
+        offset: OffsetP,
+        name: Option<String>,
+        byte_size: Option<usize>,
+        location: Option<Location>,
+        type_offset: Option<Offset>,
+        upper_bound: Option<usize>,
+        data_member_location: Option<usize>,
+        children: Vec<DwarfInfo>,
+    }
+
+    impl DwarfInfoBuilder<(), ()> {
+        pub fn new() -> Self {
+            DwarfInfoBuilder {
+                tag: (),
+                offset: (),
+                name: None,
+                byte_size: None,
+                location: None,
+                type_offset: None,
+                upper_bound: None,
+                data_member_location: None,
+                children: Vec::new(),
+            }
+        }
+    }
+
+    impl DwarfInfoBuilder<DwarfTag, Offset> {
+        pub fn build(self) -> DwarfInfo {
+            DwarfInfo {
+                tag: self.tag,
+                offset: self.offset,
+                name: self.name,
+                byte_size: self.byte_size,
+                location: self.location,
+                type_offset: self.type_offset,
+                upper_bound: self.upper_bound,
+                data_member_location: self.data_member_location,
+                children: self.children,
+            }
+        }
+    }
+
+    impl<OffsetP> DwarfInfoBuilder<(), OffsetP> {
+        pub fn tag(self, tag: DwarfTag) -> DwarfInfoBuilder<DwarfTag, OffsetP> {
+            DwarfInfoBuilder {
+                tag: tag,
+                offset: self.offset,
+                name: self.name,
+                byte_size: self.byte_size,
+                location: self.location,
+                type_offset: self.type_offset,
+                upper_bound: self.upper_bound,
+                data_member_location: self.data_member_location,
+                children: self.children,
+            }
+        }
+    }
+
+    impl<TagP> DwarfInfoBuilder<TagP, ()> {
+        pub fn offset(self, offset: Offset) -> DwarfInfoBuilder<TagP, Offset> {
+            DwarfInfoBuilder {
+                tag: self.tag,
+                offset: offset,
+                name: self.name,
+                byte_size: self.byte_size,
+                location: self.location,
+                type_offset: self.type_offset,
+                upper_bound: self.upper_bound,
+                data_member_location: self.data_member_location,
+                children: self.children,
+            }
+        }
+    }
+
+    impl<TagP, OffsetP> DwarfInfoBuilder<TagP, OffsetP> {
+        pub fn name<S: Into<String>>(mut self, name: S) -> Self {
+            self.name = Some(name.into());
+            self
+        }
+
+        pub fn byte_size(mut self, size: usize) -> Self {
+            self.byte_size = Some(size);
+            self
+        }
+
+        pub fn location(mut self, location: Location) -> Self {
+            self.location = Some(location);
+            self
+        }
+
+        pub fn type_offset(mut self, type_offset: Offset) -> Self {
+            self.type_offset = Some(type_offset);
+            self
+        }
+
+        pub fn upper_bound(mut self, upper_bound: usize) -> Self {
+            self.upper_bound = Some(upper_bound);
+            self
+        }
+
+        pub fn data_member_location(mut self, data_member_location: usize) -> Self {
+            self.data_member_location = Some(data_member_location);
+            self
+        }
+
+        pub fn children(mut self, children: Vec<DwarfInfo>) -> Self {
+            self.children = children;
+            self
+        }
+    }
 
     fn init() {
         let _ = env_logger::builder().is_test(true).try_init();
