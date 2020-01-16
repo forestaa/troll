@@ -128,7 +128,10 @@ pub struct DwarfInfoIterator<'abbrev, 'unit, 'input> {
 
 impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
     fn current_debug_info_and_next_cursor(&mut self) -> Option<DwarfInfo> {
-        if let Some(entry) = self.entries.current() {
+        let _ = self.entries.next_entry();
+        match self.entries.current() {
+            None => None,
+            Some(entry) => {
             let name = entry
                 .attr_value(gimli::DW_AT_name)
                 .unwrap()
@@ -160,10 +163,14 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                         while result != gimli::EvaluationResult::Complete {
                             match result {
                                 gimli::EvaluationResult::RequiresRelocatedAddress(address) => {
-                                    result = eval.resume_with_relocated_address(address).unwrap()
+                                        result =
+                                            eval.resume_with_relocated_address(address).unwrap()
                                 }
                                 result => {
-                                    error!("Evaluation requires more information: {:?}", result);
+                                        error!(
+                                            "Evaluation requires more information: {:?}",
+                                            result
+                                        );
                                     unimplemented!()
                                 }
                             }
@@ -201,7 +208,8 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                 None
             };
 
-            let data_member_location = if let Some(gimli::read::AttributeValue::Udata(location)) =
+                let data_member_location =
+                    if let Some(gimli::read::AttributeValue::Udata(location)) =
                 entry.attr_value(gimli::DW_AT_data_member_location).unwrap()
             {
                 Some(location as usize)
@@ -209,9 +217,8 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                 None
             };
 
-            let current_depth = self.depth;
-            match self.entries.next_dfs().unwrap() {
-                None => Some(DwarfInfo {
+                if !entry.has_children() {
+                    Some(DwarfInfo {
                     tag,
                     offset,
                     name,
@@ -221,17 +228,12 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                     upper_bound,
                     data_member_location,
                     children: Vec::new(),
-                }),
-                Some((delta_depth, _)) => {
-                    self.depth += delta_depth;
+                    })
+                } else {
                     let mut children = Vec::new();
-                    while self.depth > current_depth {
-                        if let Some(info) = self.current_debug_info_and_next_cursor() {
+                    while let Some(info) = self.current_debug_info_and_next_cursor() {
                             children.push(info);
-                        } else {
-                            break;
                         }
-                    }
                     Some(DwarfInfo {
                         tag,
                         offset,
@@ -245,8 +247,6 @@ impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
                     })
                 }
             }
-        } else {
-            None
         }
     }
 
@@ -310,7 +310,6 @@ pub fn with_dwarf_info_iterator<Output>(
     let unit = dwarf.unit(header).unwrap();
     let depth = 0;
     let mut entries = unit.entries();
-    let _ = entries.next_dfs();
     let _ = entries.next_dfs();
     let encoding = unit.encoding();
 
