@@ -24,7 +24,7 @@ impl DumpGlobalVariablesUsecase {
                 GlobalVariableViewFactory::new(&self.type_entry_repository);
             global_variables
                 .into_iter()
-                .map(|variable| global_variable_view_factory.from_global_variable(variable))
+                .flat_map(|variable| global_variable_view_factory.from_global_variable(variable))
                 .collect()
         })
     }
