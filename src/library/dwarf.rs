@@ -68,9 +68,9 @@ impl From<gimli::DwTag> for DwarfTag {
 pub struct DwarfInfo {
     offset: Offset,
     tag: DwarfTag,
-    byte_size: Option<usize>,
     name: Option<String>,
     type_offset: Option<Offset>,
+    byte_size: Option<usize>,
     location: Option<Location>,
     upper_bound: Option<usize>,
     data_member_location: Option<usize>,
@@ -86,16 +86,16 @@ impl DwarfInfo {
         self.tag.clone()
     }
 
-    pub fn size(&self) -> Option<usize> {
-        self.byte_size
-    }
-
     pub fn name(&self) -> Option<String> {
         self.name.clone()
     }
 
     pub fn type_offset(&self) -> Option<Offset> {
         self.type_offset.clone()
+    }
+
+    pub fn size(&self) -> Option<usize> {
+        self.byte_size
     }
 
     pub fn location(&self) -> Option<Location> {
@@ -143,9 +143,9 @@ impl DwarfInfoIntoIterator {
             Some(entry) => {
                 let offset = Self::get_offset(header, entry);
                 let tag = DwarfTag::from(entry.tag());
-                let byte_size = Self::get_byte_size(entry);
                 let name = Self::get_name(dwarf, entry);
                 let type_offset = Self::get_type_offset(header, entry);
+                let byte_size = Self::get_byte_size(entry);
                 let location = Self::get_location(encoding, entry, depth);
                 let upper_bound = Self::get_upper_bound(entry);
                 let data_member_location = Self::get_data_member_location(entry);
@@ -161,9 +161,9 @@ impl DwarfInfoIntoIterator {
                 Some(DwarfInfo {
                     offset,
                     tag,
-                    byte_size,
                     name,
                     type_offset,
+                    byte_size,
                     location,
                     upper_bound,
                     data_member_location,
@@ -184,20 +184,6 @@ impl DwarfInfoIntoIterator {
         >,
     ) -> Offset {
         Offset::new(entry.offset().to_debug_info_offset(header).0)
-    }
-
-    fn get_byte_size<'abbrev, 'unit>(
-        entry: &gimli::DebuggingInformationEntry<
-            'abbrev,
-            'unit,
-            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
-        >,
-    ) -> Option<usize> {
-        entry
-            .attr_value(gimli::DW_AT_byte_size)
-            .unwrap()
-            .and_then(|value| value.udata_value())
-            .map(|byte_size| byte_size as usize)
     }
 
     fn get_name<'input, 'abbrev, 'unit>(
@@ -233,6 +219,20 @@ impl DwarfInfoIntoIterator {
         } else {
             None
         }
+    }
+
+    fn get_byte_size<'abbrev, 'unit>(
+        entry: &gimli::DebuggingInformationEntry<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+    ) -> Option<usize> {
+        entry
+            .attr_value(gimli::DW_AT_byte_size)
+            .unwrap()
+            .and_then(|value| value.udata_value())
+            .map(|byte_size| byte_size as usize)
     }
 
     fn get_location<'abbrev, 'unit>(
@@ -390,9 +390,9 @@ pub mod tests {
     pub struct DwarfInfoBuilder<OffsetP, TagP> {
     offset: OffsetP,
         tag: TagP,
-    byte_size: Option<usize>,
         name: Option<String>,
     type_offset: Option<Offset>,
+        byte_size: Option<usize>,
         location: Option<Location>,
     upper_bound: Option<usize>,
     data_member_location: Option<usize>,
@@ -404,9 +404,9 @@ impl DwarfInfoBuilder<(), ()> {
         DwarfInfoBuilder {
             offset: (),
                 tag: (),
-            byte_size: None,
                 name: None,
             type_offset: None,
+                byte_size: None,
                 location: None,
             upper_bound: None,
             data_member_location: None,
@@ -420,9 +420,9 @@ impl DwarfInfoBuilder<(), ()> {
         DwarfInfo {
             offset: self.offset,
                 tag: self.tag,
-            byte_size: self.byte_size,
                 name: self.name,
             type_offset: self.type_offset,
+                byte_size: self.byte_size,
                 location: self.location,
             upper_bound: self.upper_bound,
             data_member_location: self.data_member_location,
@@ -436,9 +436,9 @@ impl DwarfInfoBuilder<(), ()> {
         DwarfInfoBuilder {
                 offset: self.offset,
             tag: tag,
-                byte_size: self.byte_size,
             name: self.name,
                 type_offset: self.type_offset,
+                byte_size: self.byte_size,
             location: self.location,
             upper_bound: self.upper_bound,
             data_member_location: self.data_member_location,
@@ -452,9 +452,9 @@ impl DwarfInfoBuilder<(), ()> {
         DwarfInfoBuilder {
                 offset: offset,
             tag: self.tag,
-                byte_size: self.byte_size,
             name: self.name,
                 type_offset: self.type_offset,
+                byte_size: self.byte_size,
             location: self.location,
             upper_bound: self.upper_bound,
             data_member_location: self.data_member_location,
@@ -464,10 +464,6 @@ impl DwarfInfoBuilder<(), ()> {
 }
 
     impl<OffsetP, TagP> DwarfInfoBuilder<OffsetP, TagP> {
-        pub fn byte_size(mut self, size: usize) -> Self {
-            self.byte_size = Some(size);
-            self
-        }
     pub fn name<S: Into<String>>(mut self, name: S) -> Self {
         self.name = Some(name.into());
         self
@@ -477,6 +473,11 @@ impl DwarfInfoBuilder<(), ()> {
             self.type_offset = Some(type_offset);
         self
     }
+
+        pub fn byte_size(mut self, size: usize) -> Self {
+            self.byte_size = Some(size);
+            self
+        }
 
     pub fn location(mut self, location: Location) -> Self {
         self.location = Some(location);
