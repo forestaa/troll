@@ -44,7 +44,9 @@ pub enum DwarfTag {
     DW_TAG_base_type,
     DW_TAG_structure_type,
     DW_TAG_array_type,
+    DW_TAG_subroutine_type,
     DW_TAG_subrange_type,
+    DW_TAG_formal_parameter,
     DW_TAG_unimplemented,
 }
 
@@ -58,7 +60,9 @@ impl From<gimli::DwTag> for DwarfTag {
             gimli::DW_TAG_base_type => DwarfTag::DW_TAG_base_type,
             gimli::DW_TAG_structure_type => DwarfTag::DW_TAG_structure_type,
             gimli::DW_TAG_array_type => DwarfTag::DW_TAG_array_type,
+            gimli::DW_TAG_subroutine_type => DwarfTag::DW_TAG_subroutine_type,
             gimli::DW_TAG_subrange_type => DwarfTag::DW_TAG_subrange_type,
+            gimli::DW_TAG_formal_parameter => DwarfTag::DW_TAG_formal_parameter,
             _ => DwarfTag::DW_TAG_unimplemented,
         }
     }
@@ -727,6 +731,83 @@ pub mod tests {
         ];
 
         dwarf_info_intoiterator_test("examples/structure", expected);
+    }
+
+    #[test]
+    #[ignore]
+    fn dwarf_info_function_pointer() {
+        let expected = vec![
+            DwarfInfoBuilder::new()
+                .offset(Offset(45))
+                .tag(DwarfTag::DW_TAG_subroutine_type)
+                .type_offset(Offset(65))
+                .children(vec![
+                    DwarfInfoBuilder::new()
+                        .offset(Offset(54))
+                        .tag(DwarfTag::DW_TAG_formal_parameter)
+                        .type_offset(Offset(65))
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .offset(Offset(59))
+                        .tag(DwarfTag::DW_TAG_formal_parameter)
+                        .type_offset(Offset(72))
+                        .build(),
+                ])
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(65))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(4)
+                .name("int")
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(72))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(1)
+                .name("char")
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(79))
+                .tag(DwarfTag::DW_TAG_variable)
+                .name("sub2")
+                .type_offset(Offset(101))
+                .location(Location(16424))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(101))
+                .tag(DwarfTag::DW_TAG_pointer_type)
+                .byte_size(8)
+                .type_offset(Offset(45))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(107))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .name("main")
+                .type_offset(Offset(65))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(137))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .name("sub1")
+                .type_offset(Offset(65))
+                .children(vec![
+                    DwarfInfoBuilder::new()
+                        .offset(Offset(167))
+                        .tag(DwarfTag::DW_TAG_formal_parameter)
+                        .name("i")
+                        .type_offset(Offset(65))
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .offset(Offset(179))
+                        .tag(DwarfTag::DW_TAG_formal_parameter)
+                        .name("c")
+                        .type_offset(Offset(72))
+                        .build(),
+                ])
+                .build(),
+        ];
+
+        dwarf_info_intoiterator_test("examples/function-pointer", expected);
     }
 
     #[test]
