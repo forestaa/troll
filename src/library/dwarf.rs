@@ -131,10 +131,10 @@ impl DwarfInfoIntoIterator {
         dwarf: &gimli::read::Dwarf<gimli::read::EndianSlice<'input, gimli::RunTimeEndian>>,
         encoding: gimli::Encoding,
         entries: &mut gimli::read::EntriesCursor<
-        'abbrev,
-        'unit,
-        gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
-    >,
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
         depth: usize,
     ) -> Option<DwarfInfo> {
         let _ = entries.next_entry();
@@ -195,10 +195,10 @@ impl DwarfInfoIntoIterator {
         >,
     ) -> Option<String> {
         entry
-                .attr_value(gimli::DW_AT_name)
-                .unwrap()
+            .attr_value(gimli::DW_AT_name)
+            .unwrap()
             .and_then(|value| value.string_value(&dwarf.debug_str))
-                .map(|r| r.to_string().unwrap())
+            .map(|r| r.to_string().unwrap())
             .map(String::from)
     }
 
@@ -210,9 +210,9 @@ impl DwarfInfoIntoIterator {
         >,
     ) -> Option<usize> {
         entry
-                .attr_value(gimli::DW_AT_byte_size)
-                .unwrap()
-                .and_then(|value| value.udata_value())
+            .attr_value(gimli::DW_AT_byte_size)
+            .unwrap()
+            .and_then(|value| value.udata_value())
             .map(|byte_size| byte_size as usize)
     }
 
@@ -225,48 +225,48 @@ impl DwarfInfoIntoIterator {
         >,
         depth: usize,
     ) -> Option<Location> {
-            // TODO: always should get location
-            // Currently not because handling RequiresFrameBase from Evaluation is needed
+        // TODO: always should get location
+        // Currently not because handling RequiresFrameBase from Evaluation is needed
         match DwarfTag::from(entry.tag()) {
             DwarfTag::DW_TAG_variable if depth == 0 => entry
-                    .attr_value(gimli::DW_AT_location)
-                    .unwrap()
-                    .map(|location| {
-                        let mut eval = location
-                            .exprloc_value()
-                            .expect(&Self::expect_error_message(
-                                "location attribute should be exprloc",
-                                &entry,
-                            ))
+                .attr_value(gimli::DW_AT_location)
+                .unwrap()
+                .map(|location| {
+                    let mut eval = location
+                        .exprloc_value()
+                        .expect(&Self::expect_error_message(
+                            "location attribute should be exprloc",
+                            &entry,
+                        ))
                         .evaluation(encoding);
-                        let mut result = eval.evaluate().unwrap();
-                        while result != gimli::EvaluationResult::Complete {
-                            match result {
-                                gimli::EvaluationResult::RequiresRelocatedAddress(address) => {
+                    let mut result = eval.evaluate().unwrap();
+                    while result != gimli::EvaluationResult::Complete {
+                        match result {
+                            gimli::EvaluationResult::RequiresRelocatedAddress(address) => {
                                 result = eval.resume_with_relocated_address(address).unwrap()
-                                }
-                                result => {
+                            }
+                            result => {
                                 error!("Evaluation requires more information: {:?}", result);
-                                    unimplemented!()
-                                }
+                                unimplemented!()
                             }
                         }
+                    }
 
-                        let result = eval.result();
-                        if let Some(gimli::Location::Address { address }) =
-                            result.get(0).map(|piece| piece.location)
-                        {
-                            address
-                        } else {
-                            error!(
-                                "The head of Evaluation result is not address: results is {:?}",
-                                result
-                            );
-                            unimplemented!()
-                        }
-                    })
-                    .map(|size| Location::new(size as usize)),
-                _ => None,
+                    let result = eval.result();
+                    if let Some(gimli::Location::Address { address }) =
+                        result.get(0).map(|piece| piece.location)
+                    {
+                        address
+                    } else {
+                        error!(
+                            "The head of Evaluation result is not address: results is {:?}",
+                            result
+                        );
+                        unimplemented!()
+                    }
+                })
+                .map(|size| Location::new(size as usize)),
+            _ => None,
         }
     }
 
@@ -281,11 +281,11 @@ impl DwarfInfoIntoIterator {
         >,
     ) -> Option<Offset> {
         if let Some(gimli::read::AttributeValue::UnitRef(offset)) =
-                entry.attr_value(gimli::DW_AT_type).unwrap()
-            {
+            entry.attr_value(gimli::DW_AT_type).unwrap()
+        {
             Some(Offset::new(offset.to_debug_info_offset(header).0))
-            } else {
-                None
+        } else {
+            None
         }
     }
 
@@ -297,11 +297,11 @@ impl DwarfInfoIntoIterator {
         >,
     ) -> Option<usize> {
         if let Some(gimli::read::AttributeValue::Data1(upper_bound)) =
-                entry.attr_value(gimli::DW_AT_upper_bound).unwrap()
-            {
-                Some(upper_bound as usize)
-            } else {
-                None
+            entry.attr_value(gimli::DW_AT_upper_bound).unwrap()
+        {
+            Some(upper_bound as usize)
+        } else {
+            None
         }
     }
 
@@ -312,12 +312,12 @@ impl DwarfInfoIntoIterator {
             gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
         >,
     ) -> Option<usize> {
-                    if let Some(gimli::read::AttributeValue::Udata(location)) =
-                entry.attr_value(gimli::DW_AT_data_member_location).unwrap()
-            {
-                Some(location as usize)
-            } else {
-                None
+        if let Some(gimli::read::AttributeValue::Udata(location)) =
+            entry.attr_value(gimli::DW_AT_data_member_location).unwrap()
+        {
+            Some(location as usize)
+        } else {
+            None
         }
     }
 
@@ -335,42 +335,42 @@ impl IntoIterator for DwarfInfoIntoIterator {
 
     fn into_iter(self) -> Self::IntoIter {
         let file = fs::File::open(&self.elf_path).unwrap();
-    let mmap = unsafe { memmap::Mmap::map(&file).unwrap() };
-    let object = object::File::parse(&*mmap).unwrap();
-    let endian = if object.is_little_endian() {
-        gimli::RunTimeEndian::Little
-    } else {
-        gimli::RunTimeEndian::Big
-    };
+        let mmap = unsafe { memmap::Mmap::map(&file).unwrap() };
+        let object = object::File::parse(&*mmap).unwrap();
+        let endian = if object.is_little_endian() {
+            gimli::RunTimeEndian::Little
+        } else {
+            gimli::RunTimeEndian::Big
+        };
 
-    let load_section = |id: gimli::SectionId| -> Result<borrow::Cow<[u8]>, gimli::Error> {
-        Ok(object
-            .section_data_by_name(id.name())
-            .unwrap_or(borrow::Cow::Borrowed(&[][..])))
-    };
-    // Load a supplementary section. We don't have a supplementary object file,
-    // so always return an empty slice.
-    let load_section_sup = |_| Ok(borrow::Cow::Borrowed(&[][..]));
+        let load_section = |id: gimli::SectionId| -> Result<borrow::Cow<[u8]>, gimli::Error> {
+            Ok(object
+                .section_data_by_name(id.name())
+                .unwrap_or(borrow::Cow::Borrowed(&[][..])))
+        };
+        // Load a supplementary section. We don't have a supplementary object file,
+        // so always return an empty slice.
+        let load_section_sup = |_| Ok(borrow::Cow::Borrowed(&[][..]));
 
-    // Load all of the sections.
-    let dwarf_cow = gimli::Dwarf::load(&load_section, &load_section_sup).unwrap();
+        // Load all of the sections.
+        let dwarf_cow = gimli::Dwarf::load(&load_section, &load_section_sup).unwrap();
 
-    // Borrow a `Cow<[u8]>` to create an `EndianSlice`.
-    let borrow_section: &dyn for<'b> Fn(
-        &'b borrow::Cow<[u8]>,
+        // Borrow a `Cow<[u8]>` to create an `EndianSlice`.
+        let borrow_section: &dyn for<'b> Fn(
+            &'b borrow::Cow<[u8]>,
         )
             -> gimli::EndianSlice<'b, gimli::RunTimeEndian> =
-        &|section| gimli::EndianSlice::new(&*section, endian);
+            &|section| gimli::EndianSlice::new(&*section, endian);
 
-    // Create `EndianSlice`s for all of the sections.
-    let dwarf = dwarf_cow.borrow(&borrow_section);
+        // Create `EndianSlice`s for all of the sections.
+        let dwarf = dwarf_cow.borrow(&borrow_section);
 
-    // Iterate over the compilation units.
+        // Iterate over the compilation units.
         let mut units = dwarf.units();
         let mut infos = Vec::new();
         while let Some(header) = units.next().unwrap() {
-    let unit = dwarf.unit(header).unwrap();
-    let mut entries = unit.entries();
+            let unit = dwarf.unit(header).unwrap();
+            let mut entries = unit.entries();
             let _ = entries.next_entry(); // skip compilatoin unit entry
             while let Some(info) =
                 Self::next_info(&header, &dwarf, unit.encoding(), &mut entries, 0)
@@ -383,118 +383,122 @@ impl IntoIterator for DwarfInfoIntoIterator {
     }
 }
 
-    pub struct DwarfInfoBuilder<TagP, OffsetP> {
-        tag: TagP,
-        offset: OffsetP,
-        name: Option<String>,
-        byte_size: Option<usize>,
-        location: Option<Location>,
-        type_offset: Option<Offset>,
-        upper_bound: Option<usize>,
-        data_member_location: Option<usize>,
-        children: Vec<DwarfInfo>,
-    }
+pub struct DwarfInfoBuilder<TagP, OffsetP> {
+    tag: TagP,
+    offset: OffsetP,
+    name: Option<String>,
+    byte_size: Option<usize>,
+    location: Option<Location>,
+    type_offset: Option<Offset>,
+    upper_bound: Option<usize>,
+    data_member_location: Option<usize>,
+    children: Vec<DwarfInfo>,
+}
 
-    impl DwarfInfoBuilder<(), ()> {
-        pub fn new() -> Self {
-            DwarfInfoBuilder {
-                tag: (),
-                offset: (),
-                name: None,
-                byte_size: None,
-                location: None,
-                type_offset: None,
-                upper_bound: None,
-                data_member_location: None,
-                children: Vec::new(),
-            }
+impl DwarfInfoBuilder<(), ()> {
+    pub fn new() -> Self {
+        DwarfInfoBuilder {
+            tag: (),
+            offset: (),
+            name: None,
+            byte_size: None,
+            location: None,
+            type_offset: None,
+            upper_bound: None,
+            data_member_location: None,
+            children: Vec::new(),
         }
     }
+}
 
-    impl DwarfInfoBuilder<DwarfTag, Offset> {
-        pub fn build(self) -> DwarfInfo {
-            DwarfInfo {
-                tag: self.tag,
-                offset: self.offset,
-                name: self.name,
-                byte_size: self.byte_size,
-                location: self.location,
-                type_offset: self.type_offset,
-                upper_bound: self.upper_bound,
-                data_member_location: self.data_member_location,
-                children: self.children,
-            }
+impl DwarfInfoBuilder<DwarfTag, Offset> {
+    pub fn build(self) -> DwarfInfo {
+        DwarfInfo {
+            tag: self.tag,
+            offset: self.offset,
+            name: self.name,
+            byte_size: self.byte_size,
+            location: self.location,
+            type_offset: self.type_offset,
+            upper_bound: self.upper_bound,
+            data_member_location: self.data_member_location,
+            children: self.children,
         }
     }
+}
 
-    impl<OffsetP> DwarfInfoBuilder<(), OffsetP> {
-        pub fn tag(self, tag: DwarfTag) -> DwarfInfoBuilder<DwarfTag, OffsetP> {
-            DwarfInfoBuilder {
-                tag: tag,
-                offset: self.offset,
-                name: self.name,
-                byte_size: self.byte_size,
-                location: self.location,
-                type_offset: self.type_offset,
-                upper_bound: self.upper_bound,
-                data_member_location: self.data_member_location,
-                children: self.children,
-            }
+impl<OffsetP> DwarfInfoBuilder<(), OffsetP> {
+    pub fn tag(self, tag: DwarfTag) -> DwarfInfoBuilder<DwarfTag, OffsetP> {
+        DwarfInfoBuilder {
+            tag: tag,
+            offset: self.offset,
+            name: self.name,
+            byte_size: self.byte_size,
+            location: self.location,
+            type_offset: self.type_offset,
+            upper_bound: self.upper_bound,
+            data_member_location: self.data_member_location,
+            children: self.children,
         }
     }
+}
 
-    impl<TagP> DwarfInfoBuilder<TagP, ()> {
-        pub fn offset(self, offset: Offset) -> DwarfInfoBuilder<TagP, Offset> {
-            DwarfInfoBuilder {
-                tag: self.tag,
-                offset: offset,
-                name: self.name,
-                byte_size: self.byte_size,
-                location: self.location,
-                type_offset: self.type_offset,
-                upper_bound: self.upper_bound,
-                data_member_location: self.data_member_location,
-                children: self.children,
-            }
+impl<TagP> DwarfInfoBuilder<TagP, ()> {
+    pub fn offset(self, offset: Offset) -> DwarfInfoBuilder<TagP, Offset> {
+        DwarfInfoBuilder {
+            tag: self.tag,
+            offset: offset,
+            name: self.name,
+            byte_size: self.byte_size,
+            location: self.location,
+            type_offset: self.type_offset,
+            upper_bound: self.upper_bound,
+            data_member_location: self.data_member_location,
+            children: self.children,
         }
     }
+}
 
-    impl<TagP, OffsetP> DwarfInfoBuilder<TagP, OffsetP> {
-        pub fn name<S: Into<String>>(mut self, name: S) -> Self {
-            self.name = Some(name.into());
-            self
-        }
-
-        pub fn byte_size(mut self, size: usize) -> Self {
-            self.byte_size = Some(size);
-            self
-        }
-
-        pub fn location(mut self, location: Location) -> Self {
-            self.location = Some(location);
-            self
-        }
-
-        pub fn type_offset(mut self, type_offset: Offset) -> Self {
-            self.type_offset = Some(type_offset);
-            self
-        }
-
-        pub fn upper_bound(mut self, upper_bound: usize) -> Self {
-            self.upper_bound = Some(upper_bound);
-            self
-        }
-
-        pub fn data_member_location(mut self, data_member_location: usize) -> Self {
-            self.data_member_location = Some(data_member_location);
-            self
-        }
-
-        pub fn children(mut self, children: Vec<DwarfInfo>) -> Self {
-            self.children = children;
-            self
-        }
+impl<TagP, OffsetP> DwarfInfoBuilder<TagP, OffsetP> {
+    pub fn name<S: Into<String>>(mut self, name: S) -> Self {
+        self.name = Some(name.into());
+        self
     }
+
+    pub fn byte_size(mut self, size: usize) -> Self {
+        self.byte_size = Some(size);
+        self
+    }
+
+    pub fn location(mut self, location: Location) -> Self {
+        self.location = Some(location);
+        self
+    }
+
+    pub fn type_offset(mut self, type_offset: Offset) -> Self {
+        self.type_offset = Some(type_offset);
+        self
+    }
+
+    pub fn upper_bound(mut self, upper_bound: usize) -> Self {
+        self.upper_bound = Some(upper_bound);
+        self
+    }
+
+    pub fn data_member_location(mut self, data_member_location: usize) -> Self {
+        self.data_member_location = Some(data_member_location);
+        self
+    }
+
+    pub fn children(mut self, children: Vec<DwarfInfo>) -> Self {
+        self.children = children;
+        self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
 
     fn init() {
         let _ = env_logger::builder().is_test(true).try_init();
@@ -502,103 +506,220 @@ impl IntoIterator for DwarfInfoIntoIterator {
 
     #[test]
     #[ignore]
-    fn with_dwarf_info_iterator_test() {
+    fn dwarf_info_intoiterator_test() {
         init();
 
         let expected = vec![
             DwarfInfoBuilder::new()
-                .tag(DwarfTag::DW_TAG_structure_type)
-                .offset(Offset(45))
-                .name("hoge")
-                .byte_size(16)
-                .children(vec![
-                    DwarfInfoBuilder::new()
-                        .tag(DwarfTag::DW_TAG_unimplemented)
-                        .offset(Offset(58))
-                        .name("hoge")
-                        .type_offset(Offset(98))
-                        .data_member_location(0)
-                        .build(),
-                    DwarfInfoBuilder::new()
-                        .tag(DwarfTag::DW_TAG_unimplemented)
-                        .offset(Offset(71))
-                        .name("hogehoge")
-                        .type_offset(Offset(105))
-                        .data_member_location(4)
-                        .build(),
-                    DwarfInfoBuilder::new()
-                        .tag(DwarfTag::DW_TAG_unimplemented)
-                        .offset(Offset(84))
-                        .name("array")
-                        .type_offset(Offset(112))
-                        .data_member_location(8)
-                        .build(),
-                ])
+                .tag(DwarfTag::DW_TAG_variable)
+                .offset(Offset(49))
+                .name("c")
+                .location(Location(16424))
+                .type_offset(Offset(69))
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_base_type)
-                .offset(Offset(98))
+                .offset(Offset(69))
                 .name("int")
                 .byte_size(4)
                 .build(),
             DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .offset(Offset(76))
+                .name("sub1")
+                .type_offset(Offset(69))
+                .children(vec![DwarfInfoBuilder::new()
+                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .offset(Offset(106))
+                    .name("i")
+                    .type_offset(Offset(69))
+                    .build()])
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_variable)
+                .offset(Offset(165))
+                .name("c")
+                .location(Location(16424))
+                .type_offset(Offset(185))
+                .build(),
+            DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_base_type)
-                .offset(Offset(105))
+                .offset(Offset(185))
+                .name("int")
+                .byte_size(4)
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_structure_type)
+                .offset(Offset(192))
+                .name("hoge")
+                .byte_size(32)
+                .children(vec![
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset(205))
+                        .name("hoge")
+                        .type_offset(Offset(274))
+                        .data_member_location(0)
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset(218))
+                        .name("hogehoge")
+                        .type_offset(Offset(280))
+                        .data_member_location(8)
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset(231))
+                        .name("array")
+                        .type_offset(Offset(287))
+                        .data_member_location(12)
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset(244))
+                        .name("fuga")
+                        .byte_size(4)
+                        .type_offset(Offset(310))
+                        .data_member_location(20)
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset(260))
+                        .name("doredore")
+                        .type_offset(Offset(322))
+                        .data_member_location(24)
+                        .build(),
+                ])
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_pointer_type)
+                .offset(Offset(274))
+                .byte_size(8)
+                .type_offset(Offset(185))
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_base_type)
+                .offset(Offset(280))
                 .name("char")
                 .byte_size(1)
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_array_type)
-                .offset(Offset(112))
-                .type_offset(Offset(98))
+                .offset(Offset(287))
+                .type_offset(Offset(185))
                 .children(vec![DwarfInfoBuilder::new()
                     .tag(DwarfTag::DW_TAG_subrange_type)
-                    .offset(Offset(121))
-                    .type_offset(Offset(128))
+                    .offset(Offset(296))
+                    .type_offset(Offset(303))
                     .upper_bound(1)
                     .build()])
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_base_type)
-                .offset(Offset(128))
+                .offset(Offset(303))
                 .name("long unsigned int")
                 .byte_size(8)
                 .build(),
             DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_base_type)
+                .offset(Offset(310))
+                .name("unsigned int")
+                .byte_size(4)
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_structure_type)
+                .offset(Offset(317))
+                .name("student")
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_pointer_type)
+                .offset(Offset(322))
+                .byte_size(8)
+                .type_offset(Offset(317))
+                .build(),
+            DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_typedef)
-                .offset(Offset(135))
+                .offset(Offset(328))
                 .name("Hoge")
-                .type_offset(Offset(45))
+                .type_offset(Offset(192))
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .offset(Offset(340))
+                .name("book")
+                .byte_size(16)
+                .children(vec![
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset(353))
+                        .name("name")
+                        .type_offset(Offset(378))
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset(365))
+                        .name("price")
+                        .type_offset(Offset(185))
+                        .build(),
+                ])
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_array_type)
-                .offset(Offset(147))
-                .type_offset(Offset(135))
+                .offset(Offset(378))
+                .type_offset(Offset(280))
                 .children(vec![DwarfInfoBuilder::new()
                     .tag(DwarfTag::DW_TAG_subrange_type)
-                    .offset(Offset(156))
-                    .type_offset(Offset(128))
+                    .offset(Offset(387))
+                    .type_offset(Offset(303))
+                    .upper_bound(15)
+                    .build()])
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_variable)
+                .offset(Offset(394))
+                .name("bk")
+                .type_offset(Offset(340))
+                .location(Location(16480))
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_array_type)
+                .offset(Offset(415))
+                .type_offset(Offset(328))
+                .children(vec![DwarfInfoBuilder::new()
+                    .tag(DwarfTag::DW_TAG_subrange_type)
+                    .offset(Offset(424))
+                    .type_offset(Offset(303))
                     .upper_bound(2)
                     .build()])
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_variable)
-                .offset(Offset(163))
+                .offset(Offset(431))
                 .name("hoges")
-                .location(Location(16480))
-                .type_offset(Offset(147))
+                .location(Location(16512))
+                .type_offset(Offset(415))
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_unimplemented)
-                .offset(Offset(185))
+                .offset(Offset(453))
                 .name("main")
-                .type_offset(Offset(98))
+                .type_offset(Offset(185))
+                .children(vec![DwarfInfoBuilder::new()
+                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .offset(Offset(487))
+                    .build()])
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .offset(Offset(501))
+                .name("sub1")
                 .build(),
         ];
 
-        with_dwarf_info_iterator(String::from("examples/simple"), |iter| {
-            let got: Vec<DwarfInfo> = iter.collect();
-            assert_eq!(expected, got);
-        });
+        let got: Vec<DwarfInfo> = DwarfInfoIntoIterator::new(String::from("examples/simple"))
+            .into_iter()
+            .collect();
+        assert_eq!(expected, got);
     }
 }
