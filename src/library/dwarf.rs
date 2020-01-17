@@ -504,222 +504,417 @@ impl DwarfInfoBuilder<(), ()> {
         let _ = env_logger::builder().is_test(true).try_init();
     }
 
-    #[test]
-    #[ignore]
-    fn dwarf_info_intoiterator_test() {
+    fn dwarf_info_intoiterator_test<S: Into<String>>(elf_path: S, expected: Vec<DwarfInfo>) {
         init();
 
+        let got: Vec<DwarfInfo> = DwarfInfoIntoIterator::new(elf_path.into())
+            .into_iter()
+            .collect();
+        assert_eq!(expected, got);
+    }
+
+    #[test]
+    #[ignore]
+    fn dwarf_info_const() {
         let expected = vec![
             DwarfInfoBuilder::new()
+                .offset(Offset(45))
                 .tag(DwarfTag::DW_TAG_variable)
-                .offset(Offset(49))
                 .name("c")
-                .location(Location(16424))
-                .type_offset(Offset(69))
+                .type_offset(Offset(72))
+                .location(Location(8196))
                 .build(),
             DwarfInfoBuilder::new()
+                .offset(Offset(65))
                 .tag(DwarfTag::DW_TAG_base_type)
-                .offset(Offset(69))
-                .name("int")
                 .byte_size(4)
+                .name("int")
                 .build(),
             DwarfInfoBuilder::new()
+                .offset(Offset(72))
+                .tag(DwarfTag::DW_TAG_const_type)
+                .type_offset(Offset(65))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(77))
                 .tag(DwarfTag::DW_TAG_unimplemented)
-                .offset(Offset(76))
-                .name("sub1")
-                .type_offset(Offset(69))
-                .children(vec![DwarfInfoBuilder::new()
-                    .tag(DwarfTag::DW_TAG_unimplemented)
-                    .offset(Offset(106))
-                    .name("i")
-                    .type_offset(Offset(69))
-                    .build()])
+                .name("main")
+                .type_offset(Offset(65))
                 .build(),
+        ];
+
+        dwarf_info_intoiterator_test("examples/const", expected);
+    }
+
+    #[test]
+    #[ignore]
+    fn dwarf_info_pointer() {
+        let expected = vec![
             DwarfInfoBuilder::new()
+                .offset(Offset(45))
                 .tag(DwarfTag::DW_TAG_variable)
-                .offset(Offset(165))
-                .name("c")
-                .location(Location(16424))
-                .type_offset(Offset(185))
+                .name("p")
+                .type_offset(Offset(65))
+                .location(Location(16432))
                 .build(),
             DwarfInfoBuilder::new()
+                .offset(Offset(65))
+                .tag(DwarfTag::DW_TAG_pointer_type)
+                .byte_size(8)
+                .type_offset(Offset(71))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(71))
                 .tag(DwarfTag::DW_TAG_base_type)
-                .offset(Offset(185))
+                .byte_size(4)
                 .name("int")
-                .byte_size(4)
                 .build(),
             DwarfInfoBuilder::new()
-                .tag(DwarfTag::DW_TAG_structure_type)
-                .offset(Offset(192))
-                .name("hoge")
-                .byte_size(32)
-                .children(vec![
-                    DwarfInfoBuilder::new()
-                        .tag(DwarfTag::DW_TAG_unimplemented)
-                        .offset(Offset(205))
-                        .name("hoge")
-                        .type_offset(Offset(274))
-                        .data_member_location(0)
-                        .build(),
-                    DwarfInfoBuilder::new()
-                        .tag(DwarfTag::DW_TAG_unimplemented)
-                        .offset(Offset(218))
-                        .name("hogehoge")
-                        .type_offset(Offset(280))
-                        .data_member_location(8)
-                        .build(),
-                    DwarfInfoBuilder::new()
-                        .tag(DwarfTag::DW_TAG_unimplemented)
-                        .offset(Offset(231))
-                        .name("array")
-                        .type_offset(Offset(287))
-                        .data_member_location(12)
-                        .build(),
-                    DwarfInfoBuilder::new()
-                        .tag(DwarfTag::DW_TAG_unimplemented)
-                        .offset(Offset(244))
-                        .name("fuga")
-                        .byte_size(4)
-                        .type_offset(Offset(310))
-                        .data_member_location(20)
-                        .build(),
-                    DwarfInfoBuilder::new()
-                        .tag(DwarfTag::DW_TAG_unimplemented)
-                        .offset(Offset(260))
-                        .name("doredore")
-                        .type_offset(Offset(322))
-                        .data_member_location(24)
-                        .build(),
-                ])
+                .offset(Offset(78))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .name("main")
+                .type_offset(Offset(71))
                 .build(),
+        ];
+
+        dwarf_info_intoiterator_test("examples/pointer", expected);
+    }
+
+    #[test]
+    #[ignore]
+    fn dwarf_info_typedef() {
+        let expected = vec![
             DwarfInfoBuilder::new()
-                .tag(DwarfTag::DW_TAG_pointer_type)
-                .offset(Offset(274))
-                .byte_size(8)
-                .type_offset(Offset(185))
-                .build(),
-            DwarfInfoBuilder::new()
-                .tag(DwarfTag::DW_TAG_base_type)
-                .offset(Offset(280))
-                .name("char")
-                .byte_size(1)
-                .build(),
-            DwarfInfoBuilder::new()
-                .tag(DwarfTag::DW_TAG_array_type)
-                .offset(Offset(287))
-                .type_offset(Offset(185))
-                .children(vec![DwarfInfoBuilder::new()
-                    .tag(DwarfTag::DW_TAG_subrange_type)
-                    .offset(Offset(296))
-                    .type_offset(Offset(303))
-                    .upper_bound(1)
-                    .build()])
-                .build(),
-            DwarfInfoBuilder::new()
-                .tag(DwarfTag::DW_TAG_base_type)
-                .offset(Offset(303))
-                .name("long unsigned int")
-                .byte_size(8)
-                .build(),
-            DwarfInfoBuilder::new()
-                .tag(DwarfTag::DW_TAG_base_type)
-                .offset(Offset(310))
-                .name("unsigned int")
-                .byte_size(4)
-                .build(),
-            DwarfInfoBuilder::new()
-                .tag(DwarfTag::DW_TAG_structure_type)
-                .offset(Offset(317))
-                .name("student")
-                .build(),
-            DwarfInfoBuilder::new()
-                .tag(DwarfTag::DW_TAG_pointer_type)
-                .offset(Offset(322))
-                .byte_size(8)
-                .type_offset(Offset(317))
-                .build(),
-            DwarfInfoBuilder::new()
+                .offset(Offset(45))
                 .tag(DwarfTag::DW_TAG_typedef)
-                .offset(Offset(328))
-                .name("Hoge")
-                .type_offset(Offset(192))
+                .name("uint8")
+                .type_offset(Offset(57))
                 .build(),
             DwarfInfoBuilder::new()
-                .tag(DwarfTag::DW_TAG_unimplemented)
-                .offset(Offset(340))
-                .name("book")
-                .byte_size(16)
-                .children(vec![
-                    DwarfInfoBuilder::new()
-                        .tag(DwarfTag::DW_TAG_unimplemented)
-                        .offset(Offset(353))
-                        .name("name")
-                        .type_offset(Offset(378))
-                        .build(),
-                    DwarfInfoBuilder::new()
-                        .tag(DwarfTag::DW_TAG_unimplemented)
-                        .offset(Offset(365))
-                        .name("price")
-                        .type_offset(Offset(185))
-                        .build(),
-                ])
+                .offset(Offset(57))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(4)
+                .name("unsigned int")
                 .build(),
             DwarfInfoBuilder::new()
-                .tag(DwarfTag::DW_TAG_array_type)
-                .offset(Offset(378))
-                .type_offset(Offset(280))
-                .children(vec![DwarfInfoBuilder::new()
-                    .tag(DwarfTag::DW_TAG_subrange_type)
-                    .offset(Offset(387))
-                    .type_offset(Offset(303))
-                    .upper_bound(15)
-                    .build()])
-                .build(),
-            DwarfInfoBuilder::new()
+                .offset(Offset(64))
                 .tag(DwarfTag::DW_TAG_variable)
-                .offset(Offset(394))
-                .name("bk")
-                .type_offset(Offset(340))
-                .location(Location(16480))
+                .name("a")
+                .type_offset(Offset(45))
+                .location(Location(16428))
                 .build(),
             DwarfInfoBuilder::new()
+                .offset(Offset(84))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .name("main")
+                .type_offset(Offset(114))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(114))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(4)
+                .name("int")
+                .build(),
+        ];
+
+        dwarf_info_intoiterator_test("examples/typedef", expected);
+    }
+
+    #[test]
+    #[ignore]
+    fn dwarf_info_array() {
+        let expected = vec![
+            DwarfInfoBuilder::new()
+                .offset(Offset(45))
                 .tag(DwarfTag::DW_TAG_array_type)
-                .offset(Offset(415))
-                .type_offset(Offset(328))
+                .type_offset(Offset(68))
                 .children(vec![DwarfInfoBuilder::new()
+                    .offset(Offset(54))
                     .tag(DwarfTag::DW_TAG_subrange_type)
-                    .offset(Offset(424))
-                    .type_offset(Offset(303))
+                    .type_offset(Offset(61))
                     .upper_bound(2)
                     .build()])
                 .build(),
             DwarfInfoBuilder::new()
+                .offset(Offset(61))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(8)
+                .name("long unsigned int")
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(68))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(4)
+                .name("int")
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(75))
                 .tag(DwarfTag::DW_TAG_variable)
-                .offset(Offset(431))
                 .name("hoges")
-                .location(Location(16512))
-                .type_offset(Offset(415))
+                .type_offset(Offset(45))
+                .location(Location(16432))
                 .build(),
             DwarfInfoBuilder::new()
+                .offset(Offset(97))
                 .tag(DwarfTag::DW_TAG_unimplemented)
-                .offset(Offset(453))
                 .name("main")
-                .type_offset(Offset(185))
-                .children(vec![DwarfInfoBuilder::new()
-                    .tag(DwarfTag::DW_TAG_unimplemented)
-                    .offset(Offset(487))
-                    .build()])
-                .build(),
-            DwarfInfoBuilder::new()
-                .tag(DwarfTag::DW_TAG_unimplemented)
-                .offset(Offset(501))
-                .name("sub1")
+                .type_offset(Offset(68))
                 .build(),
         ];
 
-        let got: Vec<DwarfInfo> = DwarfInfoIntoIterator::new(String::from("examples/simple"))
-            .into_iter()
-            .collect();
-        assert_eq!(expected, got);
+        dwarf_info_intoiterator_test("examples/array", expected);
+    }
+
+    #[test]
+    #[ignore]
+    fn dwarf_info_structure() {
+        let expected = vec![
+            DwarfInfoBuilder::new()
+                .offset(Offset(45))
+                .tag(DwarfTag::DW_TAG_structure_type)
+                .name("hoge")
+                .byte_size(8)
+                .children(vec![
+                    DwarfInfoBuilder::new()
+                        .offset(Offset(58))
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .name("hoge")
+                        .type_offset(Offset(101))
+                        .data_member_location(0)
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .offset(Offset(71))
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .name("fuga")
+                        .type_offset(Offset(108))
+                        .data_member_location(4)
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .offset(Offset(84))
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .name("pohe")
+                        .type_offset(Offset(115))
+                        .byte_size(4)
+                        .data_member_location(4)
+                        .build(),
+                ])
+                .build(),
+                    DwarfInfoBuilder::new()
+                .offset(Offset(101))
+                .tag(DwarfTag::DW_TAG_base_type)
+                        .byte_size(4)
+                .name("int")
+                        .build(),
+                    DwarfInfoBuilder::new()
+                .offset(Offset(108))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(1)
+                .name("char")
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(115))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(4)
+                .name("unsigned int")
+                        .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(122))
+                .tag(DwarfTag::DW_TAG_variable)
+                .name("hoge")
+                .type_offset(Offset(45))
+                .location(Location(16432))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(144))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .name("main")
+                .type_offset(Offset(101))
+                .build(),
+        ];
+
+        dwarf_info_intoiterator_test("examples/structure", expected);
+    }
+
+    #[test]
+    #[ignore]
+    fn dwarf_info_complex_structure() {
+        let expected = vec![
+            DwarfInfoBuilder::new()
+                .offset(Offset(45))
+                .tag(DwarfTag::DW_TAG_structure_type)
+                .name("student")
+                .byte_size(16)
+                .children(vec![DwarfInfoBuilder::new()
+                    .offset(Offset(58))
+                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .name("name")
+                    .type_offset(Offset(72))
+                    .data_member_location(0)
+                    .build()])
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(72))
+                .tag(DwarfTag::DW_TAG_array_type)
+                .type_offset(Offset(95))
+                .children(vec![DwarfInfoBuilder::new()
+                    .offset(Offset(81))
+                    .tag(DwarfTag::DW_TAG_subrange_type)
+                    .type_offset(Offset(88))
+                    .upper_bound(15)
+                    .build()])
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(88))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(8)
+                .name("long unsigned int")
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(95))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(1)
+                .name("char")
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(102))
+                .tag(DwarfTag::DW_TAG_structure_type)
+                .name("hoge")
+                .byte_size(32)
+                .children(vec![
+            DwarfInfoBuilder::new()
+                        .offset(Offset(115))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                        .name("hoge")
+                        .type_offset(Offset(155))
+                        .data_member_location(0)
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .offset(Offset(128))
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .name("array")
+                        .type_offset(Offset(168))
+                        .data_member_location(8)
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .offset(Offset(141))
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .name("student")
+                        .type_offset(Offset(45))
+                        .data_member_location(16)
+                        .build(),
+                ])
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(155))
+                .tag(DwarfTag::DW_TAG_pointer_type)
+                .byte_size(8)
+                .type_offset(Offset(161))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(161))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(4)
+                .name("int")
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(168))
+                .tag(DwarfTag::DW_TAG_array_type)
+                .type_offset(Offset(161))
+                .children(vec![DwarfInfoBuilder::new()
+                    .offset(Offset(177))
+                    .tag(DwarfTag::DW_TAG_subrange_type)
+                    .type_offset(Offset(88))
+                    .upper_bound(1)
+                    .build()])
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(184))
+                .tag(DwarfTag::DW_TAG_array_type)
+                .type_offset(Offset(102))
+                .children(vec![DwarfInfoBuilder::new()
+                    .offset(Offset(193))
+                    .tag(DwarfTag::DW_TAG_subrange_type)
+                    .type_offset(Offset(88))
+                    .upper_bound(2)
+                    .build()])
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(200))
+                .tag(DwarfTag::DW_TAG_variable)
+                .name("hoge")
+                .type_offset(Offset(184))
+                .location(Location(16480))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(222))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .name("main")
+                .type_offset(Offset(161))
+                .build(),
+        ];
+
+        dwarf_info_intoiterator_test("examples/complex-structure", expected);
+    }
+
+    #[test]
+    #[ignore]
+    fn dwarf_info_many_compilation_units() {
+        let expected = vec![
+            DwarfInfoBuilder::new()
+                .offset(Offset(45))
+                .tag(DwarfTag::DW_TAG_variable)
+                .name("c")
+                .type_offset(Offset(65))
+                .location(Location(16424))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(65))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(4)
+                .name("int")
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(72))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .name("main")
+                .type_offset(Offset(65))
+                .children(vec![DwarfInfoBuilder::new()
+                    .offset(Offset(106))
+                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .build()])
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(120))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .name("sub1")
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(182))
+                .tag(DwarfTag::DW_TAG_variable)
+                .name("c")
+                .type_offset(Offset(202))
+                .location(Location(16424))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(202))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(4)
+                .name("int")
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset(209))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .name("sub1")
+                .type_offset(Offset(202))
+                .children(vec![DwarfInfoBuilder::new()
+                    .offset(Offset(239))
+                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .name("i")
+                    .type_offset(Offset(202))
+                    .build()])
+                .build(),
+        ];
+
+        dwarf_info_intoiterator_test("examples/many-compilation-units", expected);
     }
 }
