@@ -135,7 +135,6 @@ impl DwarfInfoIntoIterator {
             'unit,
             gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
         >,
-        depth: usize,
     ) -> Option<DwarfInfo> {
         let _ = entries.next_entry();
         match entries.current() {
@@ -146,15 +145,13 @@ impl DwarfInfoIntoIterator {
                 let name = Self::get_name(dwarf, entry);
                 let type_offset = Self::get_type_offset(header, entry);
                 let byte_size = Self::get_byte_size(entry);
-                let location = Self::get_location(encoding, entry, depth);
+                let location = Self::get_location(encoding, entry);
                 let upper_bound = Self::get_upper_bound(entry);
                 let data_member_location = Self::get_data_member_location(entry);
 
                 let mut children = Vec::new();
                 if entry.has_children() {
-                    while let Some(info) =
-                        Self::next_info(header, dwarf, encoding, entries, depth + 1)
-                    {
+                    while let Some(info) = Self::next_info(header, dwarf, encoding, entries) {
                         children.push(info);
                     }
                 }
@@ -242,12 +239,11 @@ impl DwarfInfoIntoIterator {
             'unit,
             gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
         >,
-        depth: usize,
     ) -> Option<Location> {
         // TODO: always should get location
         // Currently not because handling RequiresFrameBase from Evaluation is needed
         match DwarfTag::from(entry.tag()) {
-            DwarfTag::DW_TAG_variable if depth == 0 => entry
+            DwarfTag::DW_TAG_variable => entry
                 .attr_value(gimli::DW_AT_location)
                 .unwrap()
                 .map(|location| {
@@ -372,9 +368,7 @@ impl IntoIterator for DwarfInfoIntoIterator {
             let unit = dwarf.unit(header).unwrap();
             let mut entries = unit.entries();
             let _ = entries.next_entry(); // skip compilatoin unit entry
-            while let Some(info) =
-                Self::next_info(&header, &dwarf, unit.encoding(), &mut entries, 0)
-            {
+            while let Some(info) = Self::next_info(&header, &dwarf, unit.encoding(), &mut entries) {
                 infos.push(info);
             }
         }
