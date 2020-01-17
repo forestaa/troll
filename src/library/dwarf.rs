@@ -902,7 +902,7 @@ pub mod tests {
                 .type_offset(Offset(202))
                 .children(vec![DwarfInfoBuilder::new()
                     .offset(Offset(239))
-                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .tag(DwarfTag::DW_TAG_formal_parameter)
                     .name("i")
                     .type_offset(Offset(202))
                     .build()])
