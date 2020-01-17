@@ -16,8 +16,8 @@ fn main() {
     }
 }
 
-fn dump_global_variables(filepath: String) {
+fn dump_global_variables(elf_path: String) {
     let mut usecase = DumpGlobalVariablesUsecase::new();
-    let global_variables = usecase.dump_global_variables(filepath);
+    let global_variables = usecase.dump_global_variables(elf_path);
     FromElfStdOut::new(global_variables).print();
 }
