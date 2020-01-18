@@ -1,7 +1,7 @@
 use log::warn;
 
 use super::global_variable::{Address, GlobalVariable};
-use super::type_entry::{StructureTypeMemberEntry, TypeEntry, TypeEntryId};
+use super::type_entry::*;
 use super::type_entry_repository::TypeEntryRepository;
 use crate::library::dwarf::{DwarfInfo, DwarfTag};
 
@@ -189,7 +189,56 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                     let type_entry = TypeEntry::new_structure_type_entry(id, name, size, members);
                     self.type_entry_repository.save(type_entry);
                 }
-                DwarfTag::DW_TAG_union_type => (),
+                DwarfTag::DW_TAG_union_type => {
+                    let id = TypeEntryId::new(entry.offset());
+                    let name = match entry.name() {
+                        Some(name) => name,
+                        None => {
+                            Self::warning_no_expected_attribute(
+                                "structure_type entry should have name",
+                                &entry,
+                            );
+                            continue;
+                        }
+                    };
+                    let size = match entry.size() {
+                        Some(size) => size,
+                        None => {
+                            Self::warning_no_expected_attribute(
+                                "structure_type entry should have size",
+                                &entry,
+                            );
+                            continue;
+                        }
+                    };
+                    let members = entry
+                        .children()
+                        .iter()
+                        .flat_map(|entry| {
+                            let name = entry.name().or_else(|| {
+                                Self::warning_no_expected_attribute(
+                                    "member entry should have name",
+                                    &entry,
+                                );
+                                None
+                            })?;
+                            let type_ref = match entry.type_offset() {
+                                Some(type_ref) => Some(TypeEntryId::new(type_ref)),
+                                None => {
+                                    Self::warning_no_expected_attribute(
+                                        "member entry should have type",
+                                        &entry,
+                                    );
+                                    None
+                                }
+                            }?;
+
+                            Some(UnionTypeMemberEntry { name, type_ref })
+                        })
+                        .collect();
+                    let type_entry = TypeEntry::new_union_type_entry(id, name, size, members);
+                    self.type_entry_repository.save(type_entry);
+                }
                 DwarfTag::DW_TAG_array_type => {
                     let id = TypeEntryId::new(entry.offset());
                     let type_ref = match entry.type_offset() {
