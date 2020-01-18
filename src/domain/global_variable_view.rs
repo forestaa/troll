@@ -65,6 +65,7 @@ pub enum TypeView {
         element_type: Box<TypeView>,
         upper_bound: Option<usize>,
     },
+    Function {},
 }
 
 pub struct GlobalVariableViewFactory<'repo> {
@@ -87,10 +88,11 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
             .find_by_id(global_variable.type_ref())
         {
             None => {
+                let offset: usize = global_variable.type_ref().clone().into();
                 warn!(
-                    "global variable refers unknown offset: variable: {}, refered offset {:?}",
+                    "global variable refers unknown offset: variable: {}, refered offset {:#x}",
                     global_variable.name(),
-                    global_variable.type_ref()
+                    offset
                 );
                 None
             }
@@ -135,6 +137,15 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     element_type_ref,
                     *upper_bound,
                 ),
+                TypeEntryKind::FunctionType { .. } => {
+                    let offset: usize = global_variable.type_ref().clone().into();
+                    warn!(
+                        "global variable should not refer subroutine_type: variable: {}, refered offset {:#x}",
+                        global_variable.name(),
+                       offset
+                    );
+                    None
+                }
             },
         }
     }
@@ -330,6 +341,15 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     element_type_ref,
                     *upper_bound,
                 ),
+                TypeEntryKind::FunctionType { .. } => {
+                    let offset: usize = member.type_ref.clone().into();
+                    warn!(
+                        "structure member should not refer subroutine_type: member: {}, refered offset {:#x}",
+                        member.name,
+                        offset
+                    );
+                    None
+                }
             },
         }
     }
@@ -578,6 +598,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                         upper_bound: *upper_bound,
                     })
                 }
+                TypeEntryKind::FunctionType { .. } => Some(TypeView::Function {}),
             },
         }
     }
