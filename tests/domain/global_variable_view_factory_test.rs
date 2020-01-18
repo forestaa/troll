@@ -307,7 +307,7 @@ fn from_global_variable_function_pointer() {
                 TypeEntryId::new(Offset::new(65)),
                 TypeEntryId::new(Offset::new(72)),
             ],
-            TypeEntryId::new(Offset::new(65)),
+            Some(TypeEntryId::new(Offset::new(65))),
         ),
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(65)), String::from("int"), 4),
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(72)), String::from("char"), 1),
