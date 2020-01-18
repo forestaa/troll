@@ -224,7 +224,8 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::library::dwarf::{DwarfInfoBuilder, DwarfTag, Location, Offset};
+    use crate::library::dwarf::tests::DwarfInfoBuilder;
+    use crate::library::dwarf::{DwarfTag, Location, Offset};
 
     fn init() {
         let _ = env_logger::builder().is_test(true).try_init();

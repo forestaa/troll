@@ -1,18 +1,24 @@
 CC = gcc
 LD = gcc
 CFLAGS = -Os -g3
-SRCS = $(wildcard *.c)
-OBJS = $(SRCS:%.c=%)
-TARGET = simple
+READELF = eu-readelf
+READELFFLAGS = -winfo
+SRCS = $(filter-out many-compilation-units-sub.c, $(wildcard *.c))
+BINARIES = $(SRCS:%.c=%)
+DEBUGS = $(BINARIES:%=%.debug)
 
 .PHONY: all
-all: $(TARGET)
-simple: $(OBJS)
-	$(LD) -o $@ $^
+all: $(BINARIES) $(DEBUGS)
+
+many-compilation-units: many-compilation-units.c many-compilation-units-sub.c
+	$(CC) $(CFLAGS) -o $@ $^
 
 %: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $^
+
+%.debug: %
+	$(READELF) $(READELFFLAGS) $< > $@
 
 .PHONY: clean
 clean:
-	rm -f $(TARGET)
+	rm -f $(BINARIES) $(DEBUGS)
