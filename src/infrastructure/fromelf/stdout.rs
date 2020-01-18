@@ -98,6 +98,7 @@ impl fmt::Display for FromElfLine {
 enum ParentName {
     None,
     Structure(String),
+    Union(String),
     Array(String),
 }
 
@@ -107,6 +108,7 @@ impl ParentName {
             TypeView::Structure { .. } => {
                 Self::Structure(self.with_parent(variable_view.name().clone()))
             }
+            TypeView::Union { .. } => Self::Union(self.with_parent(variable_view.name().clone())),
             TypeView::Array { .. } => Self::Array(self.with_parent(variable_view.name().clone())),
             TypeView::TypeDef { type_view, .. } => {
                 let mut variable_view = variable_view.clone();
@@ -121,6 +123,7 @@ impl ParentName {
         match self {
             Self::None => child_name,
             Self::Structure(parent_name) => format!("{}.{}", parent_name, child_name),
+            Self::Union(parent_name) => format!("{}.{}", parent_name, child_name),
             Self::Array(parent_name) => format!("{}[{}]", parent_name, child_name),
         }
     }
