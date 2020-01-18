@@ -69,7 +69,7 @@ pub struct DwarfInfo {
     tag: DwarfTag,
     offset: Offset,
     name: Option<String>,
-    size: Option<usize>,
+    byte_size: Option<usize>,
     location: Option<Location>,
     type_offset: Option<Offset>,
     upper_bound: Option<usize>,
@@ -87,7 +87,7 @@ impl DwarfInfo {
     }
 
     pub fn size(&self) -> Option<usize> {
-        self.size
+        self.byte_size
     }
 
     pub fn offset(&self) -> Offset {
@@ -115,11 +115,279 @@ impl DwarfInfo {
     }
 }
 
+pub struct DwarfInfoIntoIterator {
+    elf_path: String,
+}
+
+impl DwarfInfoIntoIterator {
+    pub fn new(elf_path: String) -> DwarfInfoIntoIterator {
+        DwarfInfoIntoIterator { elf_path }
+    }
+
+    fn next_info<'input, 'abbrev, 'unit>(
+        header: &gimli::CompilationUnitHeader<
+            gimli::read::EndianSlice<'input, gimli::RunTimeEndian>,
+        >,
+        dwarf: &gimli::read::Dwarf<gimli::read::EndianSlice<'input, gimli::RunTimeEndian>>,
+        encoding: gimli::Encoding,
+        entries: &mut gimli::read::EntriesCursor<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+        depth: usize,
+    ) -> Option<DwarfInfo> {
+        let _ = entries.next_entry();
+        match entries.current() {
+            None => None,
+            Some(entry) => {
+                let tag = DwarfTag::from(entry.tag());
+                let offset = Self::get_offset(header, entry);
+                let name = Self::get_name(dwarf, entry);
+                let byte_size = Self::get_byte_size(entry);
+                let location = Self::get_location(encoding, entry, depth);
+                let type_offset = Self::get_type_offset(header, entry);
+                let upper_bound = Self::get_upper_bound(entry);
+                let data_member_location = Self::get_data_member_location(entry);
+
+                let mut children = Vec::new();
+                if entry.has_children() {
+                    while let Some(info) =
+                        Self::next_info(header, dwarf, encoding, entries, depth + 1)
+                    {
+                        children.push(info);
+                    }
+                }
+                Some(DwarfInfo {
+                    tag,
+                    offset,
+                    name,
+                    byte_size,
+                    location,
+                    type_offset,
+                    upper_bound,
+                    data_member_location,
+                    children: children,
+                })
+            }
+        }
+    }
+
+    fn get_offset<'input, 'abbrev, 'unit>(
+        header: &gimli::CompilationUnitHeader<
+            gimli::read::EndianSlice<'input, gimli::RunTimeEndian>,
+        >,
+        entry: &gimli::DebuggingInformationEntry<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+    ) -> Offset {
+        Offset::new(entry.offset().to_debug_info_offset(header).0)
+    }
+
+    fn get_name<'input, 'abbrev, 'unit>(
+        dwarf: &gimli::read::Dwarf<gimli::read::EndianSlice<'input, gimli::RunTimeEndian>>,
+        entry: &gimli::DebuggingInformationEntry<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+    ) -> Option<String> {
+        entry
+            .attr_value(gimli::DW_AT_name)
+            .unwrap()
+            .and_then(|value| value.string_value(&dwarf.debug_str))
+            .map(|r| r.to_string().unwrap())
+            .map(String::from)
+    }
+
+    fn get_byte_size<'abbrev, 'unit>(
+        entry: &gimli::DebuggingInformationEntry<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+    ) -> Option<usize> {
+        entry
+            .attr_value(gimli::DW_AT_byte_size)
+            .unwrap()
+            .and_then(|value| value.udata_value())
+            .map(|byte_size| byte_size as usize)
+    }
+
+    fn get_location<'abbrev, 'unit>(
+        encoding: gimli::Encoding,
+        entry: &gimli::DebuggingInformationEntry<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+        depth: usize,
+    ) -> Option<Location> {
+        // TODO: always should get location
+        // Currently not because handling RequiresFrameBase from Evaluation is needed
+        match DwarfTag::from(entry.tag()) {
+            DwarfTag::DW_TAG_variable if depth == 0 => entry
+                .attr_value(gimli::DW_AT_location)
+                .unwrap()
+                .map(|location| {
+                    let mut eval = location
+                        .exprloc_value()
+                        .expect(&Self::expect_error_message(
+                            "location attribute should be exprloc",
+                            &entry,
+                        ))
+                        .evaluation(encoding);
+                    let mut result = eval.evaluate().unwrap();
+                    while result != gimli::EvaluationResult::Complete {
+                        match result {
+                            gimli::EvaluationResult::RequiresRelocatedAddress(address) => {
+                                result = eval.resume_with_relocated_address(address).unwrap()
+                            }
+                            result => {
+                                error!("Evaluation requires more information: {:?}", result);
+                                unimplemented!()
+                            }
+                        }
+                    }
+
+                    let result = eval.result();
+                    if let Some(gimli::Location::Address { address }) =
+                        result.get(0).map(|piece| piece.location)
+                    {
+                        address
+                    } else {
+                        error!(
+                            "The head of Evaluation result is not address: results is {:?}",
+                            result
+                        );
+                        unimplemented!()
+                    }
+                })
+                .map(|size| Location::new(size as usize)),
+            _ => None,
+        }
+    }
+
+    fn get_type_offset<'input, 'abbrev, 'unit>(
+        header: &gimli::CompilationUnitHeader<
+            gimli::read::EndianSlice<'input, gimli::RunTimeEndian>,
+        >,
+        entry: &gimli::DebuggingInformationEntry<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+    ) -> Option<Offset> {
+        if let Some(gimli::read::AttributeValue::UnitRef(offset)) =
+            entry.attr_value(gimli::DW_AT_type).unwrap()
+        {
+            Some(Offset::new(offset.to_debug_info_offset(header).0))
+        } else {
+            None
+        }
+    }
+
+    fn get_upper_bound<'abbrev, 'unit>(
+        entry: &gimli::DebuggingInformationEntry<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+    ) -> Option<usize> {
+        if let Some(gimli::read::AttributeValue::Data1(upper_bound)) =
+            entry.attr_value(gimli::DW_AT_upper_bound).unwrap()
+        {
+            Some(upper_bound as usize)
+        } else {
+            None
+        }
+    }
+
+    fn get_data_member_location<'abbrev, 'unit>(
+        entry: &gimli::DebuggingInformationEntry<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+    ) -> Option<usize> {
+        if let Some(gimli::read::AttributeValue::Udata(location)) =
+            entry.attr_value(gimli::DW_AT_data_member_location).unwrap()
+        {
+            Some(location as usize)
+        } else {
+            None
+        }
+    }
+
+    fn expect_error_message(
+        message: &str,
+        entry: &gimli::DebuggingInformationEntry<gimli::read::EndianSlice<gimli::RunTimeEndian>>,
+    ) -> String {
+        format!("{}: offset = {:#x}", message, entry.offset().0)
+    }
+}
+
+impl IntoIterator for DwarfInfoIntoIterator {
+    type Item = DwarfInfo;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let file = fs::File::open(&self.elf_path).unwrap();
+        let mmap = unsafe { memmap::Mmap::map(&file).unwrap() };
+        let object = object::File::parse(&*mmap).unwrap();
+        let endian = if object.is_little_endian() {
+            gimli::RunTimeEndian::Little
+        } else {
+            gimli::RunTimeEndian::Big
+        };
+
+        let load_section = |id: gimli::SectionId| -> Result<borrow::Cow<[u8]>, gimli::Error> {
+            Ok(object
+                .section_data_by_name(id.name())
+                .unwrap_or(borrow::Cow::Borrowed(&[][..])))
+        };
+        // Load a supplementary section. We don't have a supplementary object file,
+        // so always return an empty slice.
+        let load_section_sup = |_| Ok(borrow::Cow::Borrowed(&[][..]));
+
+        // Load all of the sections.
+        let dwarf_cow = gimli::Dwarf::load(&load_section, &load_section_sup).unwrap();
+
+        // Borrow a `Cow<[u8]>` to create an `EndianSlice`.
+        let borrow_section: &dyn for<'b> Fn(
+            &'b borrow::Cow<[u8]>,
+        )
+            -> gimli::EndianSlice<'b, gimli::RunTimeEndian> =
+            &|section| gimli::EndianSlice::new(&*section, endian);
+
+        // Create `EndianSlice`s for all of the sections.
+        let dwarf = dwarf_cow.borrow(&borrow_section);
+
+        // Iterate over the compilation units.
+        let mut units = dwarf.units();
+        let mut infos = Vec::new();
+        while let Some(header) = units.next().unwrap() {
+            let unit = dwarf.unit(header).unwrap();
+            let mut entries = unit.entries();
+            let _ = entries.next_entry(); // skip compilatoin unit entry
+            while let Some(info) =
+                Self::next_info(&header, &dwarf, unit.encoding(), &mut entries, 0)
+            {
+                infos.push(info);
+            }
+        }
+
+        infos.into_iter()
+    }
+}
+
 pub struct DwarfInfoBuilder<TagP, OffsetP> {
     tag: TagP,
     offset: OffsetP,
     name: Option<String>,
-    size: Option<usize>,
+    byte_size: Option<usize>,
     location: Option<Location>,
     type_offset: Option<Offset>,
     upper_bound: Option<usize>,
@@ -133,7 +401,7 @@ impl DwarfInfoBuilder<(), ()> {
             tag: (),
             offset: (),
             name: None,
-            size: None,
+            byte_size: None,
             location: None,
             type_offset: None,
             upper_bound: None,
@@ -149,7 +417,7 @@ impl DwarfInfoBuilder<DwarfTag, Offset> {
             tag: self.tag,
             offset: self.offset,
             name: self.name,
-            size: self.size,
+            byte_size: self.byte_size,
             location: self.location,
             type_offset: self.type_offset,
             upper_bound: self.upper_bound,
@@ -165,7 +433,7 @@ impl<OffsetP> DwarfInfoBuilder<(), OffsetP> {
             tag: tag,
             offset: self.offset,
             name: self.name,
-            size: self.size,
+            byte_size: self.byte_size,
             location: self.location,
             type_offset: self.type_offset,
             upper_bound: self.upper_bound,
@@ -181,7 +449,7 @@ impl<TagP> DwarfInfoBuilder<TagP, ()> {
             tag: self.tag,
             offset: offset,
             name: self.name,
-            size: self.size,
+            byte_size: self.byte_size,
             location: self.location,
             type_offset: self.type_offset,
             upper_bound: self.upper_bound,
@@ -197,8 +465,8 @@ impl<TagP, OffsetP> DwarfInfoBuilder<TagP, OffsetP> {
         self
     }
 
-    pub fn size(mut self, size: usize) -> Self {
-        self.size = Some(size);
+    pub fn byte_size(mut self, size: usize) -> Self {
+        self.byte_size = Some(size);
         self
     }
 
@@ -228,215 +496,8 @@ impl<TagP, OffsetP> DwarfInfoBuilder<TagP, OffsetP> {
     }
 }
 
-pub struct DwarfInfoIterator<'abbrev, 'unit, 'input> {
-    entries: gimli::read::EntriesCursor<
-        'abbrev,
-        'unit,
-        gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
-    >,
-    encoding: gimli::Encoding,
-    dwarf: gimli::read::Dwarf<gimli::read::EndianSlice<'input, gimli::RunTimeEndian>>,
-    depth: isize,
-}
-
-impl<'abbrev, 'unit, 'input> DwarfInfoIterator<'abbrev, 'unit, 'input> {
-    fn current_debug_info_and_next_cursor(&mut self) -> Option<DwarfInfo> {
-        if let Some(entry) = self.entries.current() {
-            let name = entry
-                .attr_value(gimli::DW_AT_name)
-                .unwrap()
-                .and_then(|value| value.string_value(&self.dwarf.debug_str))
-                .map(|r| r.to_string().unwrap())
-                .map(String::from);
-            let tag = DwarfTag::from(entry.tag());
-            let offset = Offset::new(entry.offset().0);
-            let size = entry
-                .attr_value(gimli::DW_AT_byte_size)
-                .unwrap()
-                .and_then(|value| value.udata_value())
-                .map(|size| size as usize);
-            // TODO: always should get location
-            // Currently not because handling RequiresFrameBase from Evaluation is needed
-            let location = match tag {
-                DwarfTag::DW_TAG_variable if self.depth == 0 => entry
-                    .attr_value(gimli::DW_AT_location)
-                    .unwrap()
-                    .map(|location| {
-                        let mut eval = location
-                            .exprloc_value()
-                            .expect(&Self::expect_error_message(
-                                "location attribute should be exprloc",
-                                &entry,
-                            ))
-                            .evaluation(self.encoding);
-                        let mut result = eval.evaluate().unwrap();
-                        while result != gimli::EvaluationResult::Complete {
-                            match result {
-                                gimli::EvaluationResult::RequiresRelocatedAddress(address) => {
-                                    result = eval.resume_with_relocated_address(address).unwrap()
-                                }
-                                result => {
-                                    error!("Evaluation requires more information: {:?}", result);
-                                    unimplemented!()
-                                }
-                            }
-                        }
-
-                        let result = eval.result();
-                        if let Some(gimli::Location::Address { address }) =
-                            result.get(0).map(|piece| piece.location)
-                        {
-                            address
-                        } else {
-                            error!(
-                                "The head of Evaluation result is not address: results is {:?}",
-                                result
-                            );
-                            unimplemented!()
-                        }
-                    })
-                    .map(|size| Location::new(size as usize)),
-                _ => None,
-            };
-            let type_offset = if let Some(gimli::read::AttributeValue::UnitRef(offset)) =
-                entry.attr_value(gimli::DW_AT_type).unwrap()
-            {
-                Some(Offset::new(offset.0))
-            } else {
-                None
-            };
-
-            let upper_bound = if let Some(gimli::read::AttributeValue::Data1(upper_bound)) =
-                entry.attr_value(gimli::DW_AT_upper_bound).unwrap()
-            {
-                Some(upper_bound as usize)
-            } else {
-                None
-            };
-
-            let data_member_location = if let Some(gimli::read::AttributeValue::Udata(location)) =
-                entry.attr_value(gimli::DW_AT_data_member_location).unwrap()
-            {
-                Some(location as usize)
-            } else {
-                None
-            };
-
-            let current_depth = self.depth;
-            match self.entries.next_dfs().unwrap() {
-                None => Some(DwarfInfo {
-                    tag,
-                    offset,
-                    name,
-                    size,
-                    location,
-                    type_offset,
-                    upper_bound,
-                    data_member_location,
-                    children: Vec::new(),
-                }),
-                Some((delta_depth, _)) => {
-                    self.depth += delta_depth;
-                    let mut children = Vec::new();
-                    while self.depth > current_depth {
-                        if let Some(info) = self.current_debug_info_and_next_cursor() {
-                            children.push(info);
-                        } else {
-                            break;
-                        }
-                    }
-                    Some(DwarfInfo {
-                        tag,
-                        offset,
-                        name,
-                        size,
-                        location,
-                        type_offset,
-                        upper_bound,
-                        data_member_location,
-                        children,
-                    })
-                }
-            }
-        } else {
-            None
-        }
-    }
-
-    fn expect_error_message(
-        message: &str,
-        entry: &gimli::DebuggingInformationEntry<gimli::read::EndianSlice<gimli::RunTimeEndian>>,
-    ) -> String {
-        format!("{}: offset = {:#x}", message, entry.offset().0)
-    }
-}
-
-impl<'abbrev, 'unit, 'input> Iterator for DwarfInfoIterator<'abbrev, 'unit, 'input> {
-    type Item = DwarfInfo;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.current_debug_info_and_next_cursor()
-    }
-}
-
-pub fn with_dwarf_info_iterator<Output>(
-    path: String,
-    consumer: impl for<'abbrev, 'unit, 'input> FnOnce(
-        DwarfInfoIterator<'abbrev, 'unit, 'input>,
-    ) -> Output,
-) -> Output {
-    let file = fs::File::open(&path).unwrap();
-    let mmap = unsafe { memmap::Mmap::map(&file).unwrap() };
-    let object = object::File::parse(&*mmap).unwrap();
-    let endian = if object.is_little_endian() {
-        gimli::RunTimeEndian::Little
-    } else {
-        gimli::RunTimeEndian::Big
-    };
-
-    let load_section = |id: gimli::SectionId| -> Result<borrow::Cow<[u8]>, gimli::Error> {
-        Ok(object
-            .section_data_by_name(id.name())
-            .unwrap_or(borrow::Cow::Borrowed(&[][..])))
-    };
-    // Load a supplementary section. We don't have a supplementary object file,
-    // so always return an empty slice.
-    let load_section_sup = |_| Ok(borrow::Cow::Borrowed(&[][..]));
-
-    // Load all of the sections.
-    let dwarf_cow = gimli::Dwarf::load(&load_section, &load_section_sup).unwrap();
-
-    // Borrow a `Cow<[u8]>` to create an `EndianSlice`.
-    let borrow_section: &dyn for<'b> Fn(
-        &'b borrow::Cow<[u8]>,
-    ) -> gimli::EndianSlice<'b, gimli::RunTimeEndian> =
-        &|section| gimli::EndianSlice::new(&*section, endian);
-
-    // Create `EndianSlice`s for all of the sections.
-    let dwarf = dwarf_cow.borrow(&borrow_section);
-
-    // Iterate over the compilation units.
-    let mut iter = dwarf.units();
-    let header = iter
-        .next()
-        .unwrap()
-        .expect("ELF binary should contain unit header");
-    let unit = dwarf.unit(header).unwrap();
-    let depth = 0;
-    let mut entries = unit.entries();
-    let _ = entries.next_dfs();
-    let _ = entries.next_dfs();
-    let encoding = unit.encoding();
-
-    consumer(DwarfInfoIterator {
-        entries,
-        encoding,
-        dwarf,
-        depth,
-    })
-}
-
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     fn init() {
@@ -445,103 +506,220 @@ mod test {
 
     #[test]
     #[ignore]
-    fn with_dwarf_info_iterator_test() {
+    fn dwarf_info_intoiterator_test() {
         init();
 
         let expected = vec![
             DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_variable)
+                .offset(Offset(49))
+                .name("c")
+                .location(Location(16424))
+                .type_offset(Offset(69))
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_base_type)
+                .offset(Offset(69))
+                .name("int")
+                .byte_size(4)
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .offset(Offset(76))
+                .name("sub1")
+                .type_offset(Offset(69))
+                .children(vec![DwarfInfoBuilder::new()
+                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .offset(Offset(106))
+                    .name("i")
+                    .type_offset(Offset(69))
+                    .build()])
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_variable)
+                .offset(Offset(165))
+                .name("c")
+                .location(Location(16424))
+                .type_offset(Offset(185))
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_base_type)
+                .offset(Offset(185))
+                .name("int")
+                .byte_size(4)
+                .build(),
+            DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_structure_type)
-                .offset(Offset(45))
+                .offset(Offset(192))
                 .name("hoge")
-                .size(16)
+                .byte_size(32)
                 .children(vec![
                     DwarfInfoBuilder::new()
                         .tag(DwarfTag::DW_TAG_unimplemented)
-                        .offset(Offset(58))
+                        .offset(Offset(205))
                         .name("hoge")
-                        .type_offset(Offset(98))
+                        .type_offset(Offset(274))
                         .data_member_location(0)
                         .build(),
                     DwarfInfoBuilder::new()
                         .tag(DwarfTag::DW_TAG_unimplemented)
-                        .offset(Offset(71))
+                        .offset(Offset(218))
                         .name("hogehoge")
-                        .type_offset(Offset(105))
-                        .data_member_location(4)
+                        .type_offset(Offset(280))
+                        .data_member_location(8)
                         .build(),
                     DwarfInfoBuilder::new()
                         .tag(DwarfTag::DW_TAG_unimplemented)
-                        .offset(Offset(84))
+                        .offset(Offset(231))
                         .name("array")
-                        .type_offset(Offset(112))
-                        .data_member_location(8)
+                        .type_offset(Offset(287))
+                        .data_member_location(12)
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset(244))
+                        .name("fuga")
+                        .byte_size(4)
+                        .type_offset(Offset(310))
+                        .data_member_location(20)
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset(260))
+                        .name("doredore")
+                        .type_offset(Offset(322))
+                        .data_member_location(24)
                         .build(),
                 ])
                 .build(),
             DwarfInfoBuilder::new()
-                .tag(DwarfTag::DW_TAG_base_type)
-                .offset(Offset(98))
-                .name("int")
-                .size(4)
+                .tag(DwarfTag::DW_TAG_pointer_type)
+                .offset(Offset(274))
+                .byte_size(8)
+                .type_offset(Offset(185))
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_base_type)
-                .offset(Offset(105))
+                .offset(Offset(280))
                 .name("char")
-                .size(1)
+                .byte_size(1)
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_array_type)
-                .offset(Offset(112))
-                .type_offset(Offset(98))
+                .offset(Offset(287))
+                .type_offset(Offset(185))
                 .children(vec![DwarfInfoBuilder::new()
                     .tag(DwarfTag::DW_TAG_subrange_type)
-                    .offset(Offset(121))
-                    .type_offset(Offset(128))
+                    .offset(Offset(296))
+                    .type_offset(Offset(303))
                     .upper_bound(1)
                     .build()])
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_base_type)
-                .offset(Offset(128))
+                .offset(Offset(303))
                 .name("long unsigned int")
-                .size(8)
+                .byte_size(8)
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_base_type)
+                .offset(Offset(310))
+                .name("unsigned int")
+                .byte_size(4)
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_structure_type)
+                .offset(Offset(317))
+                .name("student")
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_pointer_type)
+                .offset(Offset(322))
+                .byte_size(8)
+                .type_offset(Offset(317))
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_typedef)
-                .offset(Offset(135))
+                .offset(Offset(328))
                 .name("Hoge")
-                .type_offset(Offset(45))
+                .type_offset(Offset(192))
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .offset(Offset(340))
+                .name("book")
+                .byte_size(16)
+                .children(vec![
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset(353))
+                        .name("name")
+                        .type_offset(Offset(378))
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .tag(DwarfTag::DW_TAG_unimplemented)
+                        .offset(Offset(365))
+                        .name("price")
+                        .type_offset(Offset(185))
+                        .build(),
+                ])
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_array_type)
-                .offset(Offset(147))
-                .type_offset(Offset(135))
+                .offset(Offset(378))
+                .type_offset(Offset(280))
                 .children(vec![DwarfInfoBuilder::new()
                     .tag(DwarfTag::DW_TAG_subrange_type)
-                    .offset(Offset(156))
-                    .type_offset(Offset(128))
+                    .offset(Offset(387))
+                    .type_offset(Offset(303))
+                    .upper_bound(15)
+                    .build()])
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_variable)
+                .offset(Offset(394))
+                .name("bk")
+                .type_offset(Offset(340))
+                .location(Location(16480))
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_array_type)
+                .offset(Offset(415))
+                .type_offset(Offset(328))
+                .children(vec![DwarfInfoBuilder::new()
+                    .tag(DwarfTag::DW_TAG_subrange_type)
+                    .offset(Offset(424))
+                    .type_offset(Offset(303))
                     .upper_bound(2)
                     .build()])
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_variable)
-                .offset(Offset(163))
+                .offset(Offset(431))
                 .name("hoges")
-                .location(Location(16480))
-                .type_offset(Offset(147))
+                .location(Location(16512))
+                .type_offset(Offset(415))
                 .build(),
             DwarfInfoBuilder::new()
                 .tag(DwarfTag::DW_TAG_unimplemented)
-                .offset(Offset(185))
+                .offset(Offset(453))
                 .name("main")
-                .type_offset(Offset(98))
+                .type_offset(Offset(185))
+                .children(vec![DwarfInfoBuilder::new()
+                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .offset(Offset(487))
+                    .build()])
+                .build(),
+            DwarfInfoBuilder::new()
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .offset(Offset(501))
+                .name("sub1")
                 .build(),
         ];
 
-        with_dwarf_info_iterator(String::from("examples/simple"), |iter| {
-            let got: Vec<DwarfInfo> = iter.collect();
-            assert_eq!(expected, got);
-        });
+        let got: Vec<DwarfInfo> = DwarfInfoIntoIterator::new(String::from("examples/simple"))
+            .into_iter()
+            .collect();
+        assert_eq!(expected, got);
     }
 }

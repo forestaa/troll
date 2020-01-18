@@ -271,9 +271,10 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
     ) -> Option<GlobalVariableView> {
         match self.type_entry_repository.find_by_id(&member.type_ref) {
             None => {
+                let offset: usize = member.type_ref.clone().into();
                 warn!(
-                    "structure member refers unknown offset: member: {}, refered offset: {:?}",
-                    member.name, member.type_ref
+                    "structure member refers unknown offset: member: {}, refered offset: {:#x}",
+                    member.name, offset
                 );
                 None
             }
@@ -533,9 +534,10 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
     fn type_view_from_type_entry(&self, type_entry_id: &TypeEntryId) -> Option<TypeView> {
         match self.type_entry_repository.find_by_id(type_entry_id) {
             None => {
+                let offset: usize = type_entry_id.clone().into();
                 warn!(
-                    "something refers unknown offset: refered offset: {:?}",
-                    type_entry_id
+                    "something refers unknown offset: refered offset: {:#x}",
+                    offset
                 );
                 None
             }

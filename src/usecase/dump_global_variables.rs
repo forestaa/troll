@@ -15,17 +15,17 @@ impl DumpGlobalVariablesUsecase {
     }
 
     pub fn dump_global_variables(&mut self, filepath: String) -> Vec<GlobalVariableView> {
-        dwarf::with_dwarf_info_iterator(filepath, |iter| {
-            let mut global_variables_extractor =
-                GlobalVariablesExtractor::new(&mut self.type_entry_repository);
-            let global_variables = global_variables_extractor.extract(iter);
+        let iter = dwarf::DwarfInfoIntoIterator::new(filepath).into_iter();
 
-            let global_variable_view_factory =
-                GlobalVariableViewFactory::new(&self.type_entry_repository);
-            global_variables
-                .into_iter()
-                .flat_map(|variable| global_variable_view_factory.from_global_variable(variable))
-                .collect()
-        })
+        let mut global_variables_extractor =
+            GlobalVariablesExtractor::new(&mut self.type_entry_repository);
+        let global_variables = global_variables_extractor.extract(iter);
+
+        let global_variable_view_factory =
+            GlobalVariableViewFactory::new(&self.type_entry_repository);
+        global_variables
+            .into_iter()
+            .flat_map(|variable| global_variable_view_factory.from_global_variable(variable))
+            .collect()
     }
 }
