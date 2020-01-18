@@ -43,6 +43,11 @@ pub enum TypeEntryKind {
         size: usize,
         members: Vec<StructureTypeMemberEntry>,
     },
+    UnionType {
+        name: String,
+        size: usize,
+        members: Vec<UnionTypeMemberEntry>,
+    },
     ArrayType {
         element_type_ref: TypeEntryId,
         upper_bound: Option<usize>,
@@ -57,6 +62,12 @@ pub enum TypeEntryKind {
 pub struct StructureTypeMemberEntry {
     pub name: String,
     pub location: usize,
+    pub type_ref: TypeEntryId,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct UnionTypeMemberEntry {
+    pub name: String,
     pub type_ref: TypeEntryId,
 }
 
@@ -98,6 +109,20 @@ impl TypeEntry {
         members: Vec<StructureTypeMemberEntry>,
     ) -> TypeEntry {
         let kind = TypeEntryKind::StructureType {
+            name,
+            size,
+            members,
+        };
+        TypeEntry { id, kind }
+    }
+
+    pub fn new_union_type_entry(
+        id: TypeEntryId,
+        name: String,
+        size: usize,
+        members: Vec<UnionTypeMemberEntry>,
+    ) -> TypeEntry {
+        let kind = TypeEntryKind::UnionType {
             name,
             size,
             members,

@@ -1,6 +1,6 @@
 use super::global_variable::{Address, GlobalVariable};
 use super::global_variable_view::{GlobalVariableView, TypeView};
-use super::type_entry::{StructureTypeMemberEntry, TypeEntryId, TypeEntryKind};
+use super::type_entry::*;
 use super::type_entry_repository::TypeEntryRepository;
 use log::warn;
 
@@ -65,6 +65,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     *size,
                     members,
                 )),
+                TypeEntryKind::UnionType { .. } => unimplemented!(),
                 TypeEntryKind::ArrayType {
                     element_type_ref,
                     upper_bound,
@@ -259,6 +260,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     *size,
                     members,
                 )),
+                TypeEntryKind::UnionType { .. } => unimplemented!(),
                 TypeEntryKind::ArrayType {
                     element_type_ref,
                     upper_bound,
@@ -501,6 +503,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                 TypeEntryKind::StructureType { name, .. } => {
                     Some(TypeView::new_structure_type_view(name.clone()))
                 }
+                TypeEntryKind::UnionType { .. } => unimplemented!(),
                 TypeEntryKind::ArrayType {
                     element_type_ref,
                     upper_bound,
