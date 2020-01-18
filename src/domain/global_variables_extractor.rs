@@ -189,6 +189,7 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                     let type_entry = TypeEntry::new_structure_type_entry(id, name, size, members);
                     self.type_entry_repository.save(type_entry);
                 }
+                DwarfTag::DW_TAG_union_type => (),
                 DwarfTag::DW_TAG_array_type => {
                     let id = TypeEntryId::new(entry.offset());
                     let type_ref = match entry.type_offset() {
