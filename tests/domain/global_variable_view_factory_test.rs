@@ -1,3 +1,5 @@
+extern crate troll;
+
 use troll::domain::global_variable::{Address, GlobalVariable};
 use troll::domain::global_variable_view::*;
 use troll::domain::global_variable_view_factory::*;
@@ -234,6 +236,60 @@ fn from_global_variable_structure() {
                 Some(Address::new(Location::new(16436))),
                 4,
                 TypeView::new_base_type_view("unsigned int"),
+                vec![],
+            ),
+        ],
+    );
+
+    from_global_variable_test(defined_types, global_variable, expected_view);
+}
+
+#[test]
+fn from_global_variable_union() {
+    let defined_types = vec![
+        TypeEntry::new_union_type_entry(
+            TypeEntryId::new(Offset::new(45)),
+            String::from("book"),
+            4,
+            vec![
+                UnionTypeMemberEntry {
+                    name: String::from("name"),
+                    type_ref: TypeEntryId::new(Offset::new(83)),
+                },
+                UnionTypeMemberEntry {
+                    name: String::from("price"),
+                    type_ref: TypeEntryId::new(Offset::new(90)),
+                },
+            ],
+        ),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(83)), String::from("char"), 1),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(90)), String::from("int"), 4),
+    ];
+
+    let global_variable = GlobalVariable::new(
+        Some(Address::new(Location::new(16428))),
+        String::from("book"),
+        TypeEntryId::new(Offset::new(45)),
+    );
+
+    let expected_view = GlobalVariableView::new(
+        String::from("book"),
+        Some(Address::new(Location::new(16428))),
+        4,
+        TypeView::new_union_type_view("book"),
+        vec![
+            GlobalVariableView::new(
+                String::from("name"),
+                Some(Address::new(Location::new(16428))),
+                1,
+                TypeView::new_base_type_view("char"),
+                vec![],
+            ),
+            GlobalVariableView::new(
+                String::from("price"),
+                Some(Address::new(Location::new(16428))),
+                4,
+                TypeView::new_base_type_view("int"),
                 vec![],
             ),
         ],
