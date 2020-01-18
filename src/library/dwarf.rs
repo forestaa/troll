@@ -1,4 +1,4 @@
-use log::error;
+use log::{error, info};
 use object::Object;
 use std::{borrow, fs};
 
@@ -149,7 +149,7 @@ impl DwarfInfoIntoIterator {
                 let name = Self::get_name(dwarf, entry);
                 let type_offset = Self::get_type_offset(header, entry);
                 let byte_size = Self::get_byte_size(entry);
-                let location = Self::get_location(encoding, entry);
+                let location = Self::get_location(header, encoding, entry);
                 let upper_bound = Self::get_upper_bound(entry);
                 let data_member_location = Self::get_data_member_location(entry);
 
@@ -236,7 +236,10 @@ impl DwarfInfoIntoIterator {
             .map(|byte_size| byte_size as usize)
     }
 
-    fn get_location<'abbrev, 'unit>(
+    fn get_location<'input, 'abbrev, 'unit>(
+        header: &gimli::CompilationUnitHeader<
+            gimli::read::EndianSlice<'input, gimli::RunTimeEndian>,
+        >,
         encoding: gimli::Encoding,
         entry: &gimli::DebuggingInformationEntry<
             'abbrev,
@@ -250,14 +253,14 @@ impl DwarfInfoIntoIterator {
             DwarfTag::DW_TAG_variable => entry
                 .attr_value(gimli::DW_AT_location)
                 .unwrap()
-                .map(|location| {
-                    let mut eval = location
-                        .exprloc_value()
-                        .expect(&Self::expect_error_message(
-                            "location attribute should be exprloc",
-                            &entry,
-                        ))
-                        .evaluation(encoding);
+                .and_then(|location| {
+                    let mut eval = match location.exprloc_value() {
+                        Some(value) => Some(value.evaluation(encoding)),
+                        None => {
+                            info!("location attribute  which is not exprloc is not supported yet: offset = {:#x}", entry.offset().to_debug_info_offset(header).0);
+                            None
+                        }
+                    }?;
                     let mut result = eval.evaluate().unwrap();
                     while result != gimli::EvaluationResult::Complete {
                         match result {
@@ -275,7 +278,7 @@ impl DwarfInfoIntoIterator {
                     if let Some(gimli::Location::Address { address }) =
                         result.get(0).map(|piece| piece.location)
                     {
-                        address
+                        Some(address)
                     } else {
                         error!(
                             "The head of Evaluation result is not address: results is {:?}",
@@ -319,13 +322,6 @@ impl DwarfInfoIntoIterator {
         } else {
             None
         }
-    }
-
-    fn expect_error_message(
-        message: &str,
-        entry: &gimli::DebuggingInformationEntry<gimli::read::EndianSlice<gimli::RunTimeEndian>>,
-    ) -> String {
-        format!("{}: offset = {:#x}", message, entry.offset().0)
     }
 }
 
