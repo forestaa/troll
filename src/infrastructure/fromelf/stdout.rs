@@ -135,6 +135,7 @@ impl fmt::Display for TypeView {
             TypeView::Pointer { type_view } => write!(f, "pointer to {}", type_view),
             TypeView::Base { name } => write!(f, "{}", name),
             TypeView::Structure { name } => write!(f, "struct {}", name),
+            TypeView::Union { name } => write!(f, "union {}", name),
             TypeView::Array {
                 element_type,
                 upper_bound,

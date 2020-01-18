@@ -74,6 +74,9 @@ pub enum TypeView {
     Structure {
         name: String,
     },
+    Union {
+        name: String,
+    },
     Array {
         element_type: Box<TypeView>,
         upper_bound: Option<usize>,
@@ -111,6 +114,10 @@ impl TypeView {
 
     pub fn new_structure_type_view<S: Into<String>>(name: S) -> Self {
         Self::Structure { name: name.into() }
+    }
+
+    pub fn new_union_type_view<S: Into<String>>(name: S) -> Self {
+        Self::Union { name: name.into() }
     }
 
     pub fn new_array_type_view(element_type: Self, upper_bound: Option<usize>) -> Self {
