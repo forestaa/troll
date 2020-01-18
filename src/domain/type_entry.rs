@@ -54,7 +54,7 @@ pub enum TypeEntryKind {
     },
     FunctionType {
         argument_type_ref: Vec<TypeEntryId>,
-        return_type_ref: TypeEntryId,
+        return_type_ref: Option<TypeEntryId>,
     },
 }
 
@@ -145,7 +145,7 @@ impl TypeEntry {
     pub fn new_function_type_entry(
         id: TypeEntryId,
         argument_type_ref: Vec<TypeEntryId>,
-        return_type_ref: TypeEntryId,
+        return_type_ref: Option<TypeEntryId>,
     ) -> TypeEntry {
         let kind = TypeEntryKind::FunctionType {
             argument_type_ref,
