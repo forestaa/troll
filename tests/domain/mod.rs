@@ -1,0 +1,2 @@
+pub mod global_variable_view_factory_test;
+pub mod global_variables_extractor_test;
