@@ -904,6 +904,53 @@ mod tests {
     }
 
     #[test]
+    fn from_global_variable_function_pointer() {
+        let defined_types = vec![
+            TypeEntry::new_function_type_entry(
+                TypeEntryId::new(Offset::new(45)),
+                vec![
+                    TypeEntryId::new(Offset::new(65)),
+                    TypeEntryId::new(Offset::new(72)),
+                ],
+                TypeEntryId::new(Offset::new(65)),
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(65)),
+                String::from("int"),
+                4,
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(72)),
+                String::from("char"),
+                1,
+            ),
+            TypeEntry::new_pointer_type_entry(
+                TypeEntryId::new(Offset::new(101)),
+                8,
+                Some(TypeEntryId::new(Offset::new(45))),
+            ),
+        ];
+
+        let global_variable = GlobalVariable::new(
+            Some(Address::new(Location::new(16424))),
+            String::from("sub2"),
+            TypeEntryId::new(Offset::new(101)),
+        );
+
+        let expected_view = GlobalVariableView {
+            name: String::from("sub2"),
+            address: Some(Address::new(Location::new(16424))),
+            size: 8,
+            type_view: TypeView::Pointer {
+                type_view: Box::new(TypeView::Function {}),
+            },
+            children: vec![],
+        };
+
+        from_global_variable_test(defined_types, global_variable, expected_view);
+    }
+
+    #[test]
     fn from_global_variable_complex_structure() {
         let defined_types = vec![
             TypeEntry::new_structure_type_entry(

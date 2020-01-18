@@ -630,6 +630,113 @@ mod tests {
     }
 
     #[test]
+    fn extract_function_pointer() {
+        let infos = vec![
+            DwarfInfoBuilder::new()
+                .offset(Offset::new(45))
+                .tag(DwarfTag::DW_TAG_subroutine_type)
+                .type_offset(Offset::new(65))
+                .children(vec![
+                    DwarfInfoBuilder::new()
+                        .offset(Offset::new(54))
+                        .tag(DwarfTag::DW_TAG_formal_parameter)
+                        .type_offset(Offset::new(65))
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .offset(Offset::new(59))
+                        .tag(DwarfTag::DW_TAG_formal_parameter)
+                        .type_offset(Offset::new(72))
+                        .build(),
+                ])
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset::new(65))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(4)
+                .name("int")
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset::new(72))
+                .tag(DwarfTag::DW_TAG_base_type)
+                .byte_size(1)
+                .name("char")
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset::new(79))
+                .tag(DwarfTag::DW_TAG_variable)
+                .name("sub2")
+                .type_offset(Offset::new(101))
+                .location(Location::new(16424))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset::new(101))
+                .tag(DwarfTag::DW_TAG_pointer_type)
+                .byte_size(8)
+                .type_offset(Offset::new(45))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset::new(107))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .name("main")
+                .type_offset(Offset::new(65))
+                .build(),
+            DwarfInfoBuilder::new()
+                .offset(Offset::new(137))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .name("sub1")
+                .type_offset(Offset::new(65))
+                .children(vec![
+                    DwarfInfoBuilder::new()
+                        .offset(Offset::new(167))
+                        .tag(DwarfTag::DW_TAG_formal_parameter)
+                        .name("i")
+                        .type_offset(Offset::new(65))
+                        .build(),
+                    DwarfInfoBuilder::new()
+                        .offset(Offset::new(179))
+                        .tag(DwarfTag::DW_TAG_formal_parameter)
+                        .name("c")
+                        .type_offset(Offset::new(72))
+                        .build(),
+                ])
+                .build(),
+        ];
+
+        let expected_variables = vec![GlobalVariable::new(
+            Some(Address::new(Location::new(16424))),
+            String::from("sub2"),
+            TypeEntryId::new(Offset::new(101)),
+        )];
+        let expected_types = vec![
+            TypeEntry::new_function_type_entry(
+                TypeEntryId::new(Offset::new(45)),
+                vec![
+                    TypeEntryId::new(Offset::new(65)),
+                    TypeEntryId::new(Offset::new(72)),
+                ],
+                TypeEntryId::new(Offset::new(65)),
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(65)),
+                String::from("int"),
+                4,
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(72)),
+                String::from("char"),
+                1,
+            ),
+            TypeEntry::new_pointer_type_entry(
+                TypeEntryId::new(Offset::new(101)),
+                8,
+                Some(TypeEntryId::new(Offset::new(45))),
+            ),
+        ];
+
+        extract_test(infos, expected_variables, expected_types);
+    }
+
+    #[test]
     fn extract_complex_structure() {
         let infos = vec![
             DwarfInfoBuilder::new()
