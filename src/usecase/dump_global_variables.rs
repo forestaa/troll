@@ -1,4 +1,5 @@
-use crate::domain::global_variable_view::{GlobalVariableView, GlobalVariableViewFactory};
+use crate::domain::global_variable_view::GlobalVariableView;
+use crate::domain::global_variable_view_factory::GlobalVariableViewFactory;
 use crate::domain::global_variables_extractor::GlobalVariablesExtractor;
 use crate::domain::type_entry_repository::TypeEntryRepository;
 use crate::library::dwarf;
