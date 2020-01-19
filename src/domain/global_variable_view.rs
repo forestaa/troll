@@ -65,6 +65,7 @@ pub enum TypeView {
         element_type: Box<TypeView>,
         upper_bound: Option<usize>,
     },
+    Function {},
 }
 
 pub struct GlobalVariableViewFactory<'repo> {
@@ -87,10 +88,11 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
             .find_by_id(global_variable.type_ref())
         {
             None => {
+                let offset: usize = global_variable.type_ref().clone().into();
                 warn!(
-                    "global variable refers unknown offset: variable: {}, refered offset {:?}",
+                    "global variable refers unknown offset: variable: {}, refered offset {:#x}",
                     global_variable.name(),
-                    global_variable.type_ref()
+                    offset
                 );
                 None
             }
@@ -135,6 +137,15 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     element_type_ref,
                     *upper_bound,
                 ),
+                TypeEntryKind::FunctionType { .. } => {
+                    let offset: usize = global_variable.type_ref().clone().into();
+                    warn!(
+                        "global variable should not refer subroutine_type: variable: {}, refered offset {:#x}",
+                        global_variable.name(),
+                       offset
+                    );
+                    None
+                }
             },
         }
     }
@@ -330,6 +341,15 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     element_type_ref,
                     *upper_bound,
                 ),
+                TypeEntryKind::FunctionType { .. } => {
+                    let offset: usize = member.type_ref.clone().into();
+                    warn!(
+                        "structure member should not refer subroutine_type: member: {}, refered offset {:#x}",
+                        member.name,
+                        offset
+                    );
+                    None
+                }
             },
         }
     }
@@ -578,6 +598,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                         upper_bound: *upper_bound,
                     })
                 }
+                TypeEntryKind::FunctionType { .. } => Some(TypeView::Function {}),
             },
         }
     }
@@ -593,86 +614,427 @@ mod tests {
         let _ = env_logger::builder().is_test(true).try_init();
     }
 
-    #[test]
-    fn from_global_variable_test() {
+    fn from_global_variable_test(
+        defined_types: Vec<TypeEntry>,
+        global_variable: GlobalVariable,
+        expected_view: GlobalVariableView,
+    ) {
         init();
 
         let mut type_entry_repository = TypeEntryRepository::new();
-        let defined_types = vec![
-            TypeEntry::new_structure_type_entry(
-                TypeEntryId::new(Offset::new(45)),
-                String::from("hoge"),
-                16,
-                vec![
-                    StructureTypeMemberEntry {
-                        name: String::from("hoge"),
-                        location: 0,
-                        type_ref: TypeEntryId::new(Offset::new(98)),
-                    },
-                    StructureTypeMemberEntry {
-                        name: String::from("hogehoge"),
-                        location: 4,
-                        type_ref: TypeEntryId::new(Offset::new(105)),
-                    },
-                    StructureTypeMemberEntry {
-                        name: String::from("array"),
-                        location: 8,
-                        type_ref: TypeEntryId::new(Offset::new(112)),
-                    },
-                ],
-            ),
-            TypeEntry::new_base_type_entry(
-                TypeEntryId::new(Offset::new(98)),
-                String::from("int"),
-                4,
-            ),
-            TypeEntry::new_base_type_entry(
-                TypeEntryId::new(Offset::new(105)),
-                String::from("char"),
-                1,
-            ),
-            TypeEntry::new_array_type_entry(
-                TypeEntryId::new(Offset::new(112)),
-                TypeEntryId::new(Offset::new(98)),
-                Some(1),
-            ),
-            TypeEntry::new_base_type_entry(
-                TypeEntryId::new(Offset::new(128)),
-                String::from("long unsigned int"),
-                8,
-            ),
-            TypeEntry::new_typedef_entry(
-                TypeEntryId::new(Offset::new(135)),
-                String::from("Hoge"),
-                TypeEntryId::new(Offset::new(45)),
-            ),
-            TypeEntry::new_array_type_entry(
-                TypeEntryId::new(Offset::new(147)),
-                TypeEntryId::new(Offset::new(135)),
-                Some(2),
-            ),
-        ];
         for defined_type in defined_types {
             type_entry_repository.save(defined_type);
         }
         let factory = GlobalVariableViewFactory::new(&type_entry_repository);
 
+        let got_view = factory.from_global_variable(global_variable);
+        assert_eq!(Some(expected_view), got_view);
+    }
+
+    #[test]
+    fn from_global_variable_const() {
+        let defined_types = vec![
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(65)),
+                String::from("int"),
+                4,
+            ),
+            TypeEntry::new_const_type_entry(
+                TypeEntryId::new(Offset::new(72)),
+                TypeEntryId::new(Offset::new(65)),
+            ),
+        ];
+
         let global_variable = GlobalVariable::new(
-            Some(Address::new(Location::new(16480))),
-            String::from("hoges"),
-            TypeEntryId::new(Offset::new(147)),
+            Some(Address::new(Location::new(8196))),
+            String::from("c"),
+            TypeEntryId::new(Offset::new(72)),
         );
 
-        let expected_view = Some(GlobalVariableView {
+        let expected_view = GlobalVariableView {
+            name: String::from("c"),
+            address: Some(Address::new(Location::new(8196))),
+            size: 4,
+            type_view: TypeView::Const {
+                type_view: Box::new(TypeView::Base {
+                    name: String::from("int"),
+                }),
+            },
+            children: vec![],
+        };
+
+        from_global_variable_test(defined_types, global_variable, expected_view);
+    }
+
+    #[test]
+    fn from_global_variable_pointer() {
+        let defined_types = vec![
+            TypeEntry::new_pointer_type_entry(
+                TypeEntryId::new(Offset::new(65)),
+                8,
+                Some(TypeEntryId::new(Offset::new(71))),
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(71)),
+                String::from("int"),
+                4,
+            ),
+        ];
+
+        let global_variable = GlobalVariable::new(
+            Some(Address::new(Location::new(16432))),
+            String::from("p"),
+            TypeEntryId::new(Offset::new(65)),
+        );
+
+        let expected_view = GlobalVariableView {
+            name: String::from("p"),
+            address: Some(Address::new(Location::new(16432))),
+            size: 8,
+            type_view: TypeView::Pointer {
+                type_view: Box::new(TypeView::Base {
+                    name: String::from("int"),
+                }),
+            },
+            children: vec![],
+        };
+
+        from_global_variable_test(defined_types, global_variable, expected_view);
+    }
+
+    #[test]
+    fn from_global_variable_typedef() {
+        let defined_types = vec![
+            TypeEntry::new_typedef_entry(
+                TypeEntryId::new(Offset::new(45)),
+                String::from("uint8"),
+                TypeEntryId::new(Offset::new(57)),
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(57)),
+                String::from("unsigned int"),
+                4,
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(114)),
+                String::from("int"),
+                4,
+            ),
+        ];
+
+        let global_variable = GlobalVariable::new(
+            Some(Address::new(Location::new(16428))),
+            String::from("a"),
+            TypeEntryId::new(Offset::new(45)),
+        );
+
+        let expected_view = GlobalVariableView {
+            name: String::from("a"),
+            address: Some(Address::new(Location::new(16428))),
+            size: 4,
+            type_view: TypeView::TypeDef {
+                name: String::from("uint8"),
+                type_view: Box::new(TypeView::Base {
+                    name: String::from("unsigned int"),
+                }),
+            },
+            children: vec![],
+        };
+
+        from_global_variable_test(defined_types, global_variable, expected_view);
+    }
+
+    #[test]
+    fn from_global_variable_array() {
+        let defined_types = vec![
+            TypeEntry::new_array_type_entry(
+                TypeEntryId::new(Offset::new(45)),
+                TypeEntryId::new(Offset::new(68)),
+                Some(2),
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(61)),
+                String::from("long unsigned int"),
+                8,
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(68)),
+                String::from("int"),
+                4,
+            ),
+        ];
+
+        let global_variable = GlobalVariable::new(
+            Some(Address::new(Location::new(16432))),
+            String::from("hoges"),
+            TypeEntryId::new(Offset::new(45)),
+        );
+
+        let expected_view = GlobalVariableView {
             name: String::from("hoges"),
-            address: Some(Address::new(Location::new(16480))),
-            size: 48,
+            address: Some(Address::new(Location::new(16432))),
+            size: 12,
             type_view: TypeView::Array {
-                element_type: Box::new(TypeView::TypeDef {
-                    name: String::from("Hoge"),
-                    type_view: Box::new(TypeView::Structure {
+                element_type: Box::new(TypeView::Base {
+                    name: String::from("int"),
+                }),
+                upper_bound: Some(2),
+            },
+            children: vec![
+                GlobalVariableView {
+                    name: String::from("0"),
+                    address: Some(Address::new(Location::new(16432))),
+                    size: 4,
+                    type_view: TypeView::Base {
+                        name: String::from("int"),
+                    },
+                    children: vec![],
+                },
+                GlobalVariableView {
+                    name: String::from("1"),
+                    address: Some(Address::new(Location::new(16436))),
+                    size: 4,
+                    type_view: TypeView::Base {
+                        name: String::from("int"),
+                    },
+                    children: vec![],
+                },
+                GlobalVariableView {
+                    name: String::from("2"),
+                    address: Some(Address::new(Location::new(16440))),
+                    size: 4,
+                    type_view: TypeView::Base {
+                        name: String::from("int"),
+                    },
+                    children: vec![],
+                },
+            ],
+        };
+
+        from_global_variable_test(defined_types, global_variable, expected_view);
+    }
+
+    #[test]
+    fn from_global_variable_structure() {
+        let defined_types = vec![
+            TypeEntry::new_structure_type_entry(
+                TypeEntryId::new(Offset::new(45)),
+                String::from("hoge"),
+                8,
+                vec![
+                    StructureTypeMemberEntry {
                         name: String::from("hoge"),
-                    }),
+                        location: 0,
+                        type_ref: TypeEntryId::new(Offset::new(101)),
+                    },
+                    StructureTypeMemberEntry {
+                        name: String::from("fuga"),
+                        location: 4,
+                        type_ref: TypeEntryId::new(Offset::new(108)),
+                    },
+                    StructureTypeMemberEntry {
+                        name: String::from("pohe"),
+                        location: 4,
+                        type_ref: TypeEntryId::new(Offset::new(115)),
+                    },
+                ],
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(101)),
+                String::from("int"),
+                4,
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(108)),
+                String::from("char"),
+                1,
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(115)),
+                String::from("unsigned int"),
+                4,
+            ),
+        ];
+
+        let global_variable = GlobalVariable::new(
+            Some(Address::new(Location::new(16432))),
+            String::from("hoge"),
+            TypeEntryId::new(Offset::new(45)),
+        );
+
+        let expected_view = GlobalVariableView {
+            name: String::from("hoge"),
+            address: Some(Address::new(Location::new(16432))),
+            size: 8,
+            type_view: TypeView::Structure {
+                name: String::from("hoge"),
+            },
+            children: vec![
+                GlobalVariableView {
+                    name: String::from("hoge"),
+                    address: Some(Address::new(Location::new(16432))),
+                    size: 4,
+                    type_view: TypeView::Base {
+                        name: String::from("int"),
+                    },
+                    children: vec![],
+                },
+                GlobalVariableView {
+                    name: String::from("fuga"),
+                    address: Some(Address::new(Location::new(16436))),
+                    size: 1,
+                    type_view: TypeView::Base {
+                        name: String::from("char"),
+                    },
+                    children: vec![],
+                },
+                GlobalVariableView {
+                    name: String::from("pohe"),
+                    address: Some(Address::new(Location::new(16436))),
+                    size: 4,
+                    type_view: TypeView::Base {
+                        name: String::from("unsigned int"),
+                    },
+                    children: vec![],
+                },
+            ],
+        };
+
+        from_global_variable_test(defined_types, global_variable, expected_view);
+    }
+
+    #[test]
+    fn from_global_variable_function_pointer() {
+        let defined_types = vec![
+            TypeEntry::new_function_type_entry(
+                TypeEntryId::new(Offset::new(45)),
+                vec![
+                    TypeEntryId::new(Offset::new(65)),
+                    TypeEntryId::new(Offset::new(72)),
+                ],
+                TypeEntryId::new(Offset::new(65)),
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(65)),
+                String::from("int"),
+                4,
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(72)),
+                String::from("char"),
+                1,
+            ),
+            TypeEntry::new_pointer_type_entry(
+                TypeEntryId::new(Offset::new(101)),
+                8,
+                Some(TypeEntryId::new(Offset::new(45))),
+            ),
+        ];
+
+        let global_variable = GlobalVariable::new(
+            Some(Address::new(Location::new(16424))),
+            String::from("sub2"),
+            TypeEntryId::new(Offset::new(101)),
+        );
+
+        let expected_view = GlobalVariableView {
+            name: String::from("sub2"),
+            address: Some(Address::new(Location::new(16424))),
+            size: 8,
+            type_view: TypeView::Pointer {
+                type_view: Box::new(TypeView::Function {}),
+            },
+            children: vec![],
+        };
+
+        from_global_variable_test(defined_types, global_variable, expected_view);
+    }
+
+    #[test]
+    fn from_global_variable_complex_structure() {
+        let defined_types = vec![
+            TypeEntry::new_structure_type_entry(
+                TypeEntryId::new(Offset::new(45)),
+                String::from("student"),
+                16,
+                vec![StructureTypeMemberEntry {
+                    name: String::from("name"),
+                    location: 0,
+                    type_ref: TypeEntryId::new(Offset::new(72)),
+                }],
+            ),
+            TypeEntry::new_array_type_entry(
+                TypeEntryId::new(Offset::new(72)),
+                TypeEntryId::new(Offset::new(95)),
+                Some(15),
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(88)),
+                String::from("long unsigned int"),
+                8,
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(95)),
+                String::from("char"),
+                1,
+            ),
+            TypeEntry::new_structure_type_entry(
+                TypeEntryId::new(Offset::new(102)),
+                String::from("hoge"),
+                32,
+                vec![
+                    StructureTypeMemberEntry {
+                        name: String::from("hoge"),
+                        location: 0,
+                        type_ref: TypeEntryId::new(Offset::new(155)),
+                    },
+                    StructureTypeMemberEntry {
+                        name: String::from("array"),
+                        location: 8,
+                        type_ref: TypeEntryId::new(Offset::new(168)),
+                    },
+                    StructureTypeMemberEntry {
+                        name: String::from("student"),
+                        location: 16,
+                        type_ref: TypeEntryId::new(Offset::new(45)),
+                    },
+                ],
+            ),
+            TypeEntry::new_pointer_type_entry(
+                TypeEntryId::new(Offset::new(155)),
+                8,
+                Some(TypeEntryId::new(Offset::new(161))),
+            ),
+            TypeEntry::new_base_type_entry(
+                TypeEntryId::new(Offset::new(161)),
+                String::from("int"),
+                4,
+            ),
+            TypeEntry::new_array_type_entry(
+                TypeEntryId::new(Offset::new(168)),
+                TypeEntryId::new(Offset::new(161)),
+                Some(1),
+            ),
+            TypeEntry::new_array_type_entry(
+                TypeEntryId::new(Offset::new(184)),
+                TypeEntryId::new(Offset::new(102)),
+                Some(2),
+            ),
+        ];
+
+        let global_variable = GlobalVariable::new(
+            Some(Address::new(Location::new(16480))),
+            String::from("hoge"),
+            TypeEntryId::new(Offset::new(184)),
+        );
+
+        let expected_view = GlobalVariableView {
+            name: String::from("hoge"),
+            address: Some(Address::new(Location::new(16480))),
+            size: 96,
+            type_view: TypeView::Array {
+                element_type: Box::new(TypeView::Structure {
+                    name: String::from("hoge"),
                 }),
                 upper_bound: Some(2),
             },
@@ -680,29 +1042,19 @@ mod tests {
                 GlobalVariableView {
                     name: String::from("0"),
                     address: Some(Address::new(Location::new(16480))),
-                    size: 16,
-                    type_view: TypeView::TypeDef {
-                        name: String::from("Hoge"),
-                        type_view: Box::new(TypeView::Structure {
-                            name: String::from("hoge"),
-                        }),
+                    size: 32,
+                    type_view: TypeView::Structure {
+                        name: String::from("hoge"),
                     },
                     children: vec![
                         GlobalVariableView {
                             name: String::from("hoge"),
                             address: Some(Address::new(Location::new(16480))),
-                            size: 4,
-                            type_view: TypeView::Base {
-                                name: String::from("int"),
-                            },
-                            children: vec![],
-                        },
-                        GlobalVariableView {
-                            name: String::from("hogehoge"),
-                            address: Some(Address::new(Location::new(16484))),
-                            size: 1,
-                            type_view: TypeView::Base {
-                                name: String::from("char"),
+                            size: 8,
+                            type_view: TypeView::Pointer {
+                                type_view: Box::new(TypeView::Base {
+                                    name: String::from("int"),
+                                }),
                             },
                             children: vec![],
                         },
@@ -737,96 +1089,189 @@ mod tests {
                                 },
                             ],
                         },
+                        GlobalVariableView {
+                            name: String::from("student"),
+                            address: Some(Address::new(Location::new(16496))),
+                            size: 16,
+                            type_view: TypeView::Structure {
+                                name: String::from("student"),
+                            },
+                            children: vec![GlobalVariableView {
+                                name: String::from("name"),
+                                address: Some(Address::new(Location::new(16496))),
+                                size: 16,
+                                type_view: TypeView::Array {
+                                    element_type: Box::new(TypeView::Base {
+                                        name: String::from("char"),
+                                    }),
+                                    upper_bound: Some(15),
+                                },
+                                children: vec![
+                                    GlobalVariableView {
+                                        name: String::from("0"),
+                                        address: Some(Address::new(Location::new(16496))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("1"),
+                                        address: Some(Address::new(Location::new(16497))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("2"),
+                                        address: Some(Address::new(Location::new(16498))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("3"),
+                                        address: Some(Address::new(Location::new(16499))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("4"),
+                                        address: Some(Address::new(Location::new(16500))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("5"),
+                                        address: Some(Address::new(Location::new(16501))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("6"),
+                                        address: Some(Address::new(Location::new(16502))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("7"),
+                                        address: Some(Address::new(Location::new(16503))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("8"),
+                                        address: Some(Address::new(Location::new(16504))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("9"),
+                                        address: Some(Address::new(Location::new(16505))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("10"),
+                                        address: Some(Address::new(Location::new(16506))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("11"),
+                                        address: Some(Address::new(Location::new(16507))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("12"),
+                                        address: Some(Address::new(Location::new(16508))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("13"),
+                                        address: Some(Address::new(Location::new(16509))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("14"),
+                                        address: Some(Address::new(Location::new(16510))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("15"),
+                                        address: Some(Address::new(Location::new(16511))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                ],
+                            }],
+                        },
                     ],
                 },
                 GlobalVariableView {
                     name: String::from("1"),
-                    address: Some(Address::new(Location::new(16496))),
-                    size: 16,
-                    type_view: TypeView::TypeDef {
-                        name: String::from("Hoge"),
-                        type_view: Box::new(TypeView::Structure {
-                            name: String::from("hoge"),
-                        }),
-                    },
-                    children: vec![
-                        GlobalVariableView {
-                            name: String::from("hoge"),
-                            address: Some(Address::new(Location::new(16496))),
-                            size: 4,
-                            type_view: TypeView::Base {
-                                name: String::from("int"),
-                            },
-                            children: vec![],
-                        },
-                        GlobalVariableView {
-                            name: String::from("hogehoge"),
-                            address: Some(Address::new(Location::new(16500))),
-                            size: 1,
-                            type_view: TypeView::Base {
-                                name: String::from("char"),
-                            },
-                            children: vec![],
-                        },
-                        GlobalVariableView {
-                            name: String::from("array"),
-                            address: Some(Address::new(Location::new(16504))),
-                            size: 8,
-                            type_view: TypeView::Array {
-                                element_type: Box::new(TypeView::Base {
-                                    name: String::from("int"),
-                                }),
-                                upper_bound: Some(1),
-                            },
-                            children: vec![
-                                GlobalVariableView {
-                                    name: String::from("0"),
-                                    address: Some(Address::new(Location::new(16504))),
-                                    size: 4,
-                                    type_view: TypeView::Base {
-                                        name: String::from("int"),
-                                    },
-                                    children: vec![],
-                                },
-                                GlobalVariableView {
-                                    name: String::from("1"),
-                                    address: Some(Address::new(Location::new(16508))),
-                                    size: 4,
-                                    type_view: TypeView::Base {
-                                        name: String::from("int"),
-                                    },
-                                    children: vec![],
-                                },
-                            ],
-                        },
-                    ],
-                },
-                GlobalVariableView {
-                    name: String::from("2"),
                     address: Some(Address::new(Location::new(16512))),
-                    size: 16,
-                    type_view: TypeView::TypeDef {
-                        name: String::from("Hoge"),
-                        type_view: Box::new(TypeView::Structure {
-                            name: String::from("hoge"),
-                        }),
+                    size: 32,
+                    type_view: TypeView::Structure {
+                        name: String::from("hoge"),
                     },
                     children: vec![
                         GlobalVariableView {
                             name: String::from("hoge"),
                             address: Some(Address::new(Location::new(16512))),
-                            size: 4,
-                            type_view: TypeView::Base {
-                                name: String::from("int"),
-                            },
-                            children: vec![],
-                        },
-                        GlobalVariableView {
-                            name: String::from("hogehoge"),
-                            address: Some(Address::new(Location::new(16516))),
-                            size: 1,
-                            type_view: TypeView::Base {
-                                name: String::from("char"),
+                            size: 8,
+                            type_view: TypeView::Pointer {
+                                type_view: Box::new(TypeView::Base {
+                                    name: String::from("int"),
+                                }),
                             },
                             children: vec![],
                         },
@@ -861,12 +1306,393 @@ mod tests {
                                 },
                             ],
                         },
+                        GlobalVariableView {
+                            name: String::from("student"),
+                            address: Some(Address::new(Location::new(16528))),
+                            size: 16,
+                            type_view: TypeView::Structure {
+                                name: String::from("student"),
+                            },
+                            children: vec![GlobalVariableView {
+                                name: String::from("name"),
+                                address: Some(Address::new(Location::new(16528))),
+                                size: 16,
+                                type_view: TypeView::Array {
+                                    element_type: Box::new(TypeView::Base {
+                                        name: String::from("char"),
+                                    }),
+                                    upper_bound: Some(15),
+                                },
+                                children: vec![
+                                    GlobalVariableView {
+                                        name: String::from("0"),
+                                        address: Some(Address::new(Location::new(16528))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("1"),
+                                        address: Some(Address::new(Location::new(16529))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("2"),
+                                        address: Some(Address::new(Location::new(16530))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("3"),
+                                        address: Some(Address::new(Location::new(16531))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("4"),
+                                        address: Some(Address::new(Location::new(16532))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("5"),
+                                        address: Some(Address::new(Location::new(16533))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("6"),
+                                        address: Some(Address::new(Location::new(16534))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("7"),
+                                        address: Some(Address::new(Location::new(16535))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("8"),
+                                        address: Some(Address::new(Location::new(16536))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("9"),
+                                        address: Some(Address::new(Location::new(16537))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("10"),
+                                        address: Some(Address::new(Location::new(16538))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("11"),
+                                        address: Some(Address::new(Location::new(16539))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("12"),
+                                        address: Some(Address::new(Location::new(16540))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("13"),
+                                        address: Some(Address::new(Location::new(16541))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("14"),
+                                        address: Some(Address::new(Location::new(16542))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("15"),
+                                        address: Some(Address::new(Location::new(16543))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                ],
+                            }],
+                        },
+                    ],
+                },
+                GlobalVariableView {
+                    name: String::from("2"),
+                    address: Some(Address::new(Location::new(16544))),
+                    size: 32,
+                    type_view: TypeView::Structure {
+                        name: String::from("hoge"),
+                    },
+                    children: vec![
+                        GlobalVariableView {
+                            name: String::from("hoge"),
+                            address: Some(Address::new(Location::new(16544))),
+                            size: 8,
+                            type_view: TypeView::Pointer {
+                                type_view: Box::new(TypeView::Base {
+                                    name: String::from("int"),
+                                }),
+                            },
+                            children: vec![],
+                        },
+                        GlobalVariableView {
+                            name: String::from("array"),
+                            address: Some(Address::new(Location::new(16552))),
+                            size: 8,
+                            type_view: TypeView::Array {
+                                element_type: Box::new(TypeView::Base {
+                                    name: String::from("int"),
+                                }),
+                                upper_bound: Some(1),
+                            },
+                            children: vec![
+                                GlobalVariableView {
+                                    name: String::from("0"),
+                                    address: Some(Address::new(Location::new(16552))),
+                                    size: 4,
+                                    type_view: TypeView::Base {
+                                        name: String::from("int"),
+                                    },
+                                    children: vec![],
+                                },
+                                GlobalVariableView {
+                                    name: String::from("1"),
+                                    address: Some(Address::new(Location::new(16556))),
+                                    size: 4,
+                                    type_view: TypeView::Base {
+                                        name: String::from("int"),
+                                    },
+                                    children: vec![],
+                                },
+                            ],
+                        },
+                        GlobalVariableView {
+                            name: String::from("student"),
+                            address: Some(Address::new(Location::new(16560))),
+                            size: 16,
+                            type_view: TypeView::Structure {
+                                name: String::from("student"),
+                            },
+                            children: vec![GlobalVariableView {
+                                name: String::from("name"),
+                                address: Some(Address::new(Location::new(16560))),
+                                size: 16,
+                                type_view: TypeView::Array {
+                                    element_type: Box::new(TypeView::Base {
+                                        name: String::from("char"),
+                                    }),
+                                    upper_bound: Some(15),
+                                },
+                                children: vec![
+                                    GlobalVariableView {
+                                        name: String::from("0"),
+                                        address: Some(Address::new(Location::new(16560))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("1"),
+                                        address: Some(Address::new(Location::new(16561))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("2"),
+                                        address: Some(Address::new(Location::new(16562))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("3"),
+                                        address: Some(Address::new(Location::new(16563))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("4"),
+                                        address: Some(Address::new(Location::new(16564))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("5"),
+                                        address: Some(Address::new(Location::new(16565))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("6"),
+                                        address: Some(Address::new(Location::new(16566))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("7"),
+                                        address: Some(Address::new(Location::new(16567))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("8"),
+                                        address: Some(Address::new(Location::new(16568))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("9"),
+                                        address: Some(Address::new(Location::new(16569))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("10"),
+                                        address: Some(Address::new(Location::new(16570))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("11"),
+                                        address: Some(Address::new(Location::new(16571))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("12"),
+                                        address: Some(Address::new(Location::new(16572))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("13"),
+                                        address: Some(Address::new(Location::new(16573))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("14"),
+                                        address: Some(Address::new(Location::new(16574))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                    GlobalVariableView {
+                                        name: String::from("15"),
+                                        address: Some(Address::new(Location::new(16575))),
+                                        size: 1,
+                                        type_view: TypeView::Base {
+                                            name: String::from("char"),
+                                        },
+                                        children: vec![],
+                                    },
+                                ],
+                            }],
+                        },
                     ],
                 },
             ],
-        });
+        };
 
-        let got_view = factory.from_global_variable(global_variable);
-        assert_eq!(expected_view, got_view);
+        from_global_variable_test(defined_types, global_variable, expected_view);
     }
 }

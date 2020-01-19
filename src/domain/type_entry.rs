@@ -47,6 +47,10 @@ pub enum TypeEntryKind {
         element_type_ref: TypeEntryId,
         upper_bound: Option<usize>,
     },
+    FunctionType {
+        argument_type_ref: Vec<TypeEntryId>,
+        return_type_ref: TypeEntryId,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -109,6 +113,18 @@ impl TypeEntry {
         let kind = TypeEntryKind::ArrayType {
             element_type_ref,
             upper_bound,
+        };
+        TypeEntry { id, kind }
+    }
+
+    pub fn new_function_type_entry(
+        id: TypeEntryId,
+        argument_type_ref: Vec<TypeEntryId>,
+        return_type_ref: TypeEntryId,
+    ) -> TypeEntry {
+        let kind = TypeEntryKind::FunctionType {
+            argument_type_ref,
+            return_type_ref,
         };
         TypeEntry { id, kind }
     }

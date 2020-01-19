@@ -14,8 +14,8 @@ impl DumpGlobalVariablesUsecase {
         }
     }
 
-    pub fn dump_global_variables(&mut self, filepath: String) -> Vec<GlobalVariableView> {
-        let iter = dwarf::DwarfInfoIntoIterator::new(filepath).into_iter();
+    pub fn dump_global_variables(&mut self, elf_path: String) -> Vec<GlobalVariableView> {
+        let iter = dwarf::DwarfInfoIntoIterator::new(elf_path).into_iter();
 
         let mut global_variables_extractor =
             GlobalVariablesExtractor::new(&mut self.type_entry_repository);

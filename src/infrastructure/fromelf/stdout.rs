@@ -142,6 +142,7 @@ impl fmt::Display for TypeView {
                 None => write!(f, "{}[]", element_type),
                 Some(upper_bound) => write!(f, "{}[{}]", element_type, upper_bound),
             },
+            TypeView::Function {} => write!(f, "function"),
         }
     }
 }
