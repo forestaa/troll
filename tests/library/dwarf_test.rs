@@ -1,3 +1,5 @@
+extern crate troll;
+
 use troll::library::dwarf::*;
 
 fn init() {
@@ -233,6 +235,60 @@ fn dwarf_info_structure() {
     ];
 
     dwarf_info_intoiterator_test("examples/structure", expected);
+}
+
+#[test]
+#[ignore]
+fn dwarf_info_union() {
+    let expected = vec![
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(45))
+            .tag(DwarfTag::DW_TAG_union_type)
+            .name("book")
+            .byte_size(4)
+            .children(vec![
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(58))
+                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .name("name")
+                    .type_offset(Offset::new(83))
+                    .build(),
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(70))
+                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .name("price")
+                    .type_offset(Offset::new(90))
+                    .build(),
+            ])
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(83))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(1)
+            .name("char")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(90))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(97))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("book")
+            .type_offset(Offset::new(45))
+            .location(Location::new(16428))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(119))
+            .tag(DwarfTag::DW_TAG_unimplemented)
+            .name("main")
+            .type_offset(Offset::new(90))
+            .build(),
+    ];
+
+    dwarf_info_intoiterator_test("examples/union", expected);
 }
 
 #[test]

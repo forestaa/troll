@@ -1,6 +1,6 @@
 use super::global_variable::{Address, GlobalVariable};
 use super::global_variable_view::{GlobalVariableView, TypeView};
-use super::type_entry::{StructureTypeMemberEntry, TypeEntryId, TypeEntryKind};
+use super::type_entry::*;
 use super::type_entry_repository::TypeEntryRepository;
 use log::warn;
 
@@ -60,6 +60,16 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     size,
                     members,
                 } => Some(self.from_global_variable_structure_type(
+                    global_variable,
+                    type_name.clone(),
+                    *size,
+                    members,
+                )),
+                TypeEntryKind::UnionType {
+                    name: type_name,
+                    size,
+                    members,
+                } => Some(self.from_global_variable_union_type(
                     global_variable,
                     type_name.clone(),
                     *size,
@@ -178,6 +188,33 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
         )
     }
 
+    fn from_global_variable_union_type(
+        &self,
+        global_variable: GlobalVariable,
+        type_name: String,
+        size: usize,
+        members: &Vec<UnionTypeMemberEntry>,
+    ) -> GlobalVariableView {
+        let members: Vec<GlobalVariableView> = members
+            .iter()
+            .flat_map(|member| {
+                self.from_global_variable(GlobalVariable::new(
+                    global_variable.address(),
+                    member.name.clone(),
+                    member.type_ref.clone(),
+                ))
+            })
+            .collect();
+
+        GlobalVariableView::new(
+            global_variable.name(),
+            global_variable.address(),
+            size,
+            TypeView::new_union_type_view(type_name),
+            members,
+        )
+    }
+
     fn from_global_variable_array_type(
         &self,
         global_variable: GlobalVariable,
@@ -253,6 +290,17 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     size,
                     members,
                 } => Some(self.from_structure_type_member_entry_structure_type(
+                    member,
+                    base_address,
+                    type_name.clone(),
+                    *size,
+                    members,
+                )),
+                TypeEntryKind::UnionType {
+                    name: type_name,
+                    size,
+                    members,
+                } => Some(self.from_structure_type_member_entry_union_type(
                     member,
                     base_address,
                     type_name.clone(),
@@ -397,6 +445,38 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
         )
     }
 
+    fn from_structure_type_member_entry_union_type(
+        &self,
+        member: &StructureTypeMemberEntry,
+        base_address: &Option<Address>,
+        type_name: String,
+        size: usize,
+        members: &Vec<UnionTypeMemberEntry>,
+    ) -> GlobalVariableView {
+        let mut address = base_address.clone();
+        if let Some(ref mut addr) = address {
+            addr.add(member.location);
+        }
+        let members: Vec<GlobalVariableView> = members
+            .iter()
+            .flat_map(|member| {
+                self.from_global_variable(GlobalVariable::new(
+                    address.clone(),
+                    member.name.clone(),
+                    member.type_ref.clone(),
+                ))
+            })
+            .collect();
+
+        GlobalVariableView::new(
+            member.name.clone(),
+            address,
+            size,
+            TypeView::new_structure_type_view(type_name),
+            members,
+        )
+    }
+
     fn from_structure_type_member_entry_array_type(
         &self,
         member: &StructureTypeMemberEntry,
@@ -500,6 +580,9 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                 }
                 TypeEntryKind::StructureType { name, .. } => {
                     Some(TypeView::new_structure_type_view(name.clone()))
+                }
+                TypeEntryKind::UnionType { name, .. } => {
+                    Some(TypeView::new_union_type_view(name.clone()))
                 }
                 TypeEntryKind::ArrayType {
                     element_type_ref,
