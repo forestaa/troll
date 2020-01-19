@@ -169,7 +169,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
     fn from_global_variable_structure_type(
         &self,
         global_variable: GlobalVariable,
-        type_name: String,
+        type_name: Option<String>,
         size: usize,
         members: &Vec<StructureTypeMemberEntry>,
     ) -> GlobalVariableView {
@@ -191,7 +191,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
     fn from_global_variable_union_type(
         &self,
         global_variable: GlobalVariable,
-        type_name: String,
+        type_name: Option<String>,
         size: usize,
         members: &Vec<UnionTypeMemberEntry>,
     ) -> GlobalVariableView {
@@ -423,7 +423,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
         &self,
         member: &StructureTypeMemberEntry,
         base_address: &Option<Address>,
-        type_name: String,
+        type_name: Option<String>,
         size: usize,
         members: &Vec<StructureTypeMemberEntry>,
     ) -> GlobalVariableView {
@@ -449,7 +449,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
         &self,
         member: &StructureTypeMemberEntry,
         base_address: &Option<Address>,
-        type_name: String,
+        type_name: Option<String>,
         size: usize,
         members: &Vec<UnionTypeMemberEntry>,
     ) -> GlobalVariableView {
