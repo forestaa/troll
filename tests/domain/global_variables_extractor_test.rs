@@ -317,7 +317,7 @@ fn extract_structure() {
     let expected_types = vec![
         TypeEntry::new_structure_type_entry(
             TypeEntryId::new(Offset::new(45)),
-            String::from("hoge"),
+            Some(String::from("hoge")),
             8,
             vec![
                 StructureTypeMemberEntry {
@@ -408,7 +408,7 @@ fn extract_union() {
     let expected_types = vec![
         TypeEntry::new_union_type_entry(
             TypeEntryId::new(Offset::new(45)),
-            String::from("book"),
+            Some(String::from("book")),
             4,
             vec![
                 UnionTypeMemberEntry {
@@ -652,7 +652,7 @@ fn extract_complex_structure() {
     let expected_types = vec![
         TypeEntry::new_structure_type_entry(
             TypeEntryId::new(Offset::new(45)),
-            String::from("student"),
+            Some(String::from("student")),
             4,
             vec![StructureTypeMemberEntry {
                 name: String::from("name"),
@@ -673,7 +673,7 @@ fn extract_complex_structure() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(95)), String::from("char"), 1),
         TypeEntry::new_structure_type_entry(
             TypeEntryId::new(Offset::new(102)),
-            String::from("hoge"),
+            Some(String::from("hoge")),
             24,
             vec![
                 StructureTypeMemberEntry {

@@ -176,7 +176,7 @@ fn from_global_variable_structure() {
     let defined_types = vec![
         TypeEntry::new_structure_type_entry(
             TypeEntryId::new(Offset::new(45)),
-            String::from("hoge"),
+            Some(String::from("hoge")),
             8,
             vec![
                 StructureTypeMemberEntry {
@@ -215,7 +215,7 @@ fn from_global_variable_structure() {
         String::from("hoge"),
         Some(Address::new(Location::new(16432))),
         8,
-        TypeView::new_structure_type_view("hoge"),
+        TypeView::new_structure_type_view(Some("hoge")),
         vec![
             GlobalVariableView::new(
                 String::from("hoge"),
@@ -249,7 +249,7 @@ fn from_global_variable_union() {
     let defined_types = vec![
         TypeEntry::new_union_type_entry(
             TypeEntryId::new(Offset::new(45)),
-            String::from("book"),
+            Some(String::from("book")),
             4,
             vec![
                 UnionTypeMemberEntry {
@@ -276,7 +276,7 @@ fn from_global_variable_union() {
         String::from("book"),
         Some(Address::new(Location::new(16428))),
         4,
-        TypeView::new_union_type_view("book"),
+        TypeView::new_union_type_view(Some("book")),
         vec![
             GlobalVariableView::new(
                 String::from("name"),
@@ -340,7 +340,7 @@ fn from_global_variable_complex_structure() {
     let defined_types = vec![
         TypeEntry::new_structure_type_entry(
             TypeEntryId::new(Offset::new(45)),
-            String::from("student"),
+            Some(String::from("student")),
             4,
             vec![StructureTypeMemberEntry {
                 name: String::from("name"),
@@ -361,7 +361,7 @@ fn from_global_variable_complex_structure() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(95)), String::from("char"), 1),
         TypeEntry::new_structure_type_entry(
             TypeEntryId::new(Offset::new(102)),
-            String::from("hoge"),
+            Some(String::from("hoge")),
             24,
             vec![
                 StructureTypeMemberEntry {
@@ -409,13 +409,13 @@ fn from_global_variable_complex_structure() {
         String::from("hoge"),
         Some(Address::new(Location::new(16480))),
         48,
-        TypeView::new_array_type_view(TypeView::new_structure_type_view("hoge"), Some(1)),
+        TypeView::new_array_type_view(TypeView::new_structure_type_view(Some("hoge")), Some(1)),
         vec![
             GlobalVariableView::new(
                 String::from("0"),
                 Some(Address::new(Location::new(16480))),
                 24,
-                TypeView::new_structure_type_view("hoge"),
+                TypeView::new_structure_type_view(Some("hoge")),
                 vec![
                     GlobalVariableView::new(
                         String::from("hoge"),
@@ -450,7 +450,7 @@ fn from_global_variable_complex_structure() {
                         String::from("student"),
                         Some(Address::new(Location::new(16496))),
                         4,
-                        TypeView::new_structure_type_view("student"),
+                        TypeView::new_structure_type_view(Some("student")),
                         vec![GlobalVariableView::new(
                             String::from("name"),
                             Some(Address::new(Location::new(16496))),
@@ -497,7 +497,7 @@ fn from_global_variable_complex_structure() {
                 String::from("1"),
                 Some(Address::new(Location::new(16504))),
                 24,
-                TypeView::new_structure_type_view("hoge"),
+                TypeView::new_structure_type_view(Some("hoge")),
                 vec![
                     GlobalVariableView::new(
                         String::from("hoge"),
@@ -532,7 +532,7 @@ fn from_global_variable_complex_structure() {
                         String::from("student"),
                         Some(Address::new(Location::new(16520))),
                         4,
-                        TypeView::new_structure_type_view("student"),
+                        TypeView::new_structure_type_view(Some("student")),
                         vec![GlobalVariableView::new(
                             String::from("name"),
                             Some(Address::new(Location::new(16520))),
