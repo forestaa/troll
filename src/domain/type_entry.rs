@@ -39,12 +39,12 @@ pub enum TypeEntryKind {
         size: usize,
     },
     StructureType {
-        name: String,
+        name: Option<String>,
         size: usize,
         members: Vec<StructureTypeMemberEntry>,
     },
     UnionType {
-        name: String,
+        name: Option<String>,
         size: usize,
         members: Vec<UnionTypeMemberEntry>,
     },
@@ -104,7 +104,7 @@ impl TypeEntry {
 
     pub fn new_structure_type_entry(
         id: TypeEntryId,
-        name: String,
+        name: Option<String>,
         size: usize,
         members: Vec<StructureTypeMemberEntry>,
     ) -> TypeEntry {
@@ -118,7 +118,7 @@ impl TypeEntry {
 
     pub fn new_union_type_entry(
         id: TypeEntryId,
-        name: String,
+        name: Option<String>,
         size: usize,
         members: Vec<UnionTypeMemberEntry>,
     ) -> TypeEntry {
