@@ -293,6 +293,78 @@ fn dwarf_info_union() {
 
 #[test]
 #[ignore]
+fn dwarf_info_anonymous_union_structure() {
+    let expected = vec![
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(45))
+            .tag(DwarfTag::DW_TAG_structure_type)
+            .byte_size(4)
+            .children(vec![DwarfInfoBuilder::new()
+                .offset(Offset::new(54))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .name("a")
+                .type_offset(Offset::new(66))
+                .data_member_location(0)
+                .build()])
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(66))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(73))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("a")
+            .type_offset(Offset::new(45))
+            .location(Location::new(16428))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(93))
+            .tag(DwarfTag::DW_TAG_union_type)
+            .byte_size(4)
+            .children(vec![
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(102))
+                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .name("a")
+                    .type_offset(Offset::new(66))
+                    .build(),
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(112))
+                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .name("b")
+                    .type_offset(Offset::new(123))
+                    .build(),
+            ])
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(123))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(1)
+            .name("char")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(130))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("ab")
+            .type_offset(Offset::new(93))
+            .location(Location::new(16432))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(151))
+            .tag(DwarfTag::DW_TAG_unimplemented)
+            .name("main")
+            .type_offset(Offset::new(66))
+            .build(),
+    ];
+
+    dwarf_info_intoiterator_test("examples/anonymous-union-structure", expected);
+}
+
+#[test]
+#[ignore]
 fn dwarf_info_function_pointer() {
     let expected = vec![
         DwarfInfoBuilder::new()
