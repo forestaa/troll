@@ -1,4 +1,4 @@
-use log::{error, info};
+use log::info;
 use object::Object;
 use std::{borrow, fs};
 
@@ -268,8 +268,8 @@ impl DwarfInfoIntoIterator {
                                 result = eval.resume_with_relocated_address(address).unwrap()
                             }
                             result => {
-                                error!("Evaluation requires more information: {:?}", result);
-                                unimplemented!()
+                                info!("Evaluation requires more information: {:?}", result);
+                                return None
                             }
                         }
                     }
@@ -280,11 +280,11 @@ impl DwarfInfoIntoIterator {
                     {
                         Some(address)
                     } else {
-                        error!(
+                        info!(
                             "The head of Evaluation result is not address: results is {:?}",
                             result
                         );
-                        unimplemented!()
+                        None
                     }
                 })
                 .map(|size| Location::new(size as usize)),
