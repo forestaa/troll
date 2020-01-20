@@ -370,6 +370,44 @@ fn dwarf_info_function_pointer() {
 
 #[test]
 #[ignore]
+fn dwarf_info_void_function_pointer() {
+    let expected = vec![
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(45))
+            .tag(DwarfTag::DW_TAG_subroutine_type)
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(46))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("callback")
+            .type_offset(Offset::new(68))
+            .location(Location::new(16432))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(68))
+            .tag(DwarfTag::DW_TAG_pointer_type)
+            .byte_size(8)
+            .type_offset(Offset::new(45))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(74))
+            .tag(DwarfTag::DW_TAG_unimplemented)
+            .name("main")
+            .type_offset(Offset::new(104))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(104))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+    ];
+
+    dwarf_info_intoiterator_test("examples/void-function-pointer", expected);
+}
+
+#[test]
+#[ignore]
 fn dwarf_info_complex_structure() {
     let expected = vec![
         DwarfInfoBuilder::new()

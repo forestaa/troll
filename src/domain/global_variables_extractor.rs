@@ -277,16 +277,9 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                             _ => None,
                         })
                         .collect();
-                    let return_type_ref = match entry.type_offset() {
-                        Some(type_ref) => TypeEntryId::new(type_ref),
-                        None => {
-                            Self::warning_no_expected_attribute(
-                                "subroutine_type entry should have type",
-                                &entry,
-                            );
-                            continue;
-                        }
-                    };
+                    let return_type_ref = entry
+                        .type_offset()
+                        .map(|type_ref| TypeEntryId::new(type_ref));
                     let type_entry =
                         TypeEntry::new_function_type_entry(id, argument_type_ref, return_type_ref);
                     self.type_entry_repository.save(type_entry);
