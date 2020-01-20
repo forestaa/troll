@@ -42,6 +42,8 @@ pub enum DwarfTag {
     DW_TAG_const_type,
     DW_TAG_pointer_type,
     DW_TAG_base_type,
+    DW_TAG_enumeration_type,
+    DW_TAG_enumerator,
     DW_TAG_structure_type,
     DW_TAG_union_type,
     DW_TAG_array_type,
@@ -59,6 +61,8 @@ impl From<gimli::DwTag> for DwarfTag {
             gimli::DW_TAG_const_type => DwarfTag::DW_TAG_const_type,
             gimli::DW_TAG_pointer_type => DwarfTag::DW_TAG_pointer_type,
             gimli::DW_TAG_base_type => DwarfTag::DW_TAG_base_type,
+            gimli::DW_TAG_enumeration_type => DwarfTag::DW_TAG_enumeration_type,
+            gimli::DW_TAG_enumerator => DwarfTag::DW_TAG_enumerator,
             gimli::DW_TAG_structure_type => DwarfTag::DW_TAG_structure_type,
             gimli::DW_TAG_union_type => DwarfTag::DW_TAG_union_type,
             gimli::DW_TAG_array_type => DwarfTag::DW_TAG_array_type,
@@ -79,6 +83,7 @@ pub struct DwarfInfo {
     byte_size: Option<usize>,
     location: Option<Location>,
     upper_bound: Option<usize>,
+    const_value: Option<usize>,
     data_member_location: Option<usize>,
     children: Vec<DwarfInfo>,
 }
@@ -110,6 +115,10 @@ impl DwarfInfo {
 
     pub fn upper_bound(&self) -> Option<usize> {
         self.upper_bound
+    }
+
+    pub fn const_value(&self) -> Option<usize> {
+        self.const_value
     }
 
     pub fn data_member_location(&self) -> Option<usize> {
@@ -153,6 +162,7 @@ impl DwarfInfoIntoIterator {
                 let byte_size = Self::get_byte_size(entry);
                 let location = Self::get_location(header, encoding, entry);
                 let upper_bound = Self::get_upper_bound(entry);
+                let const_value = Self::get_const_value(entry);
                 let data_member_location = Self::get_data_member_location(entry);
 
                 let mut children = Vec::new();
@@ -169,6 +179,7 @@ impl DwarfInfoIntoIterator {
                     byte_size,
                     location,
                     upper_bound,
+                    const_value,
                     data_member_location,
                     children: children,
                 })
@@ -310,6 +321,22 @@ impl DwarfInfoIntoIterator {
         }
     }
 
+    fn get_const_value<'abbrev, 'unit>(
+        entry: &gimli::DebuggingInformationEntry<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+    ) -> Option<usize> {
+        if let Some(gimli::read::AttributeValue::Data1(const_value)) =
+            entry.attr_value(gimli::DW_AT_const_value).unwrap()
+        {
+            Some(const_value as usize)
+        } else {
+            None
+        }
+    }
+
     fn get_data_member_location<'abbrev, 'unit>(
         entry: &gimli::DebuggingInformationEntry<
             'abbrev,
@@ -387,6 +414,7 @@ pub struct DwarfInfoBuilder<OffsetP, TagP> {
     byte_size: Option<usize>,
     location: Option<Location>,
     upper_bound: Option<usize>,
+    const_value: Option<usize>,
     data_member_location: Option<usize>,
     children: Vec<DwarfInfo>,
 }
@@ -401,6 +429,7 @@ impl DwarfInfoBuilder<(), ()> {
             byte_size: None,
             location: None,
             upper_bound: None,
+            const_value: None,
             data_member_location: None,
             children: Vec::new(),
         }
@@ -417,6 +446,7 @@ impl DwarfInfoBuilder<Offset, DwarfTag> {
             byte_size: self.byte_size,
             location: self.location,
             upper_bound: self.upper_bound,
+            const_value: self.const_value,
             data_member_location: self.data_member_location,
             children: self.children,
         }
@@ -433,6 +463,7 @@ impl<OffsetP> DwarfInfoBuilder<OffsetP, ()> {
             byte_size: self.byte_size,
             location: self.location,
             upper_bound: self.upper_bound,
+            const_value: self.const_value,
             data_member_location: self.data_member_location,
             children: self.children,
         }
@@ -449,6 +480,7 @@ impl<TagP> DwarfInfoBuilder<(), TagP> {
             byte_size: self.byte_size,
             location: self.location,
             upper_bound: self.upper_bound,
+            const_value: self.const_value,
             data_member_location: self.data_member_location,
             children: self.children,
         }
@@ -478,6 +510,11 @@ impl<OffsetP, TagP> DwarfInfoBuilder<OffsetP, TagP> {
 
     pub fn upper_bound(mut self, upper_bound: usize) -> Self {
         self.upper_bound = Some(upper_bound);
+        self
+    }
+
+    pub fn const_value(mut self, const_value: usize) -> Self {
+        self.const_value = Some(const_value);
         self
     }
 

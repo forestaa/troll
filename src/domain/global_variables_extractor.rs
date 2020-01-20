@@ -266,6 +266,8 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                         TypeEntry::new_function_type_entry(id, argument_type_ref, return_type_ref);
                     self.type_entry_repository.save(type_entry);
                 }
+                DwarfTag::DW_TAG_enumeration_type => unimplemented!(),
+                DwarfTag::DW_TAG_enumerator => unimplemented!(),
                 DwarfTag::DW_TAG_subrange_type => (),
                 DwarfTag::DW_TAG_formal_parameter => (),
                 DwarfTag::DW_TAG_unimplemented => (),
