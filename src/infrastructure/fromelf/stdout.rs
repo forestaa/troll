@@ -143,6 +143,7 @@ impl fmt::Display for TypeView {
             TypeView::Union { name } => {
                 write!(f, "union {}", name.as_ref().unwrap_or(&String::from("")))
             }
+            TypeView::Enum { .. } => "".fmt(f),
             TypeView::Array {
                 element_type,
                 upper_bound,
