@@ -1,6 +1,6 @@
 [package]
 name = "troll"
-version = "0.5.2"
+version = "0.6.0"
 authors = ["forestaa <t.daichi.3@gmail.com>"]
 edition = "2018"
 
