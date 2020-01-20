@@ -183,6 +183,118 @@ fn from_global_variable_array() {
 }
 
 #[test]
+fn from_global_variable_enum() {
+    let defined_types = vec![
+        TypeEntry::new_enum_type_entry(
+            TypeEntryId::new(Offset::new(45)),
+            Some(String::from("AB")),
+            TypeEntryId::new(Offset::new(71)),
+            vec![
+                EnumeratorEntry {
+                    name: String::from("A"),
+                    value: 0,
+                },
+                EnumeratorEntry {
+                    name: String::from("B"),
+                    value: 1,
+                },
+            ],
+        ),
+        TypeEntry::new_base_type_entry(
+            TypeEntryId::new(Offset::new(71)),
+            String::from("unsigned int"),
+            4,
+        ),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(129)), String::from("int"), 4),
+    ];
+
+    let global_variable = GlobalVariable::new(
+        Some(Address::new(Location::new(16428))),
+        String::from("ab"),
+        TypeEntryId::new(Offset::new(45)),
+    );
+
+    let expected_view = GlobalVariableView::new(
+        String::from("ab"),
+        Some(Address::new(Location::new(16428))),
+        4,
+        TypeView::new_enum_type_view(
+            Some("AB"),
+            TypeView::new_base_type_view("unsigned int"),
+            vec![
+                Enumerator {
+                    name: String::from("A"),
+                    value: 0,
+                },
+                Enumerator {
+                    name: String::from("B"),
+                    value: 1,
+                },
+            ],
+        ),
+        vec![],
+    );
+
+    from_global_variable_test(defined_types, global_variable, expected_view);
+}
+
+#[test]
+fn from_global_variable_anonymous_enum() {
+    let defined_types = vec![
+        TypeEntry::new_enum_type_entry(
+            TypeEntryId::new(Offset::new(45)),
+            None,
+            TypeEntryId::new(Offset::new(68)),
+            vec![
+                EnumeratorEntry {
+                    name: String::from("A"),
+                    value: 0,
+                },
+                EnumeratorEntry {
+                    name: String::from("B"),
+                    value: 1,
+                },
+            ],
+        ),
+        TypeEntry::new_base_type_entry(
+            TypeEntryId::new(Offset::new(68)),
+            String::from("unsigned int"),
+            4,
+        ),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(126)), String::from("int"), 4),
+    ];
+
+    let global_variable = GlobalVariable::new(
+        Some(Address::new(Location::new(16428))),
+        String::from("ab"),
+        TypeEntryId::new(Offset::new(45)),
+    );
+
+    let expected_view = GlobalVariableView::new(
+        String::from("ab"),
+        Some(Address::new(Location::new(16428))),
+        4,
+        TypeView::new_enum_type_view::<String>(
+            None,
+            TypeView::new_base_type_view("unsigned int"),
+            vec![
+                Enumerator {
+                    name: String::from("A"),
+                    value: 0,
+                },
+                Enumerator {
+                    name: String::from("B"),
+                    value: 1,
+                },
+            ],
+        ),
+        vec![],
+    );
+
+    from_global_variable_test(defined_types, global_variable, expected_view);
+}
+
+#[test]
 fn from_global_variable_structure() {
     let defined_types = vec![
         TypeEntry::new_structure_type_entry(
