@@ -130,16 +130,7 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                 DwarfTag::DW_TAG_structure_type => {
                     let id = TypeEntryId::new(entry.offset());
 
-                    let name = match entry.name() {
-                        Some(name) => name,
-                        None => {
-                            Self::warning_no_expected_attribute(
-                                "structure_type entry should have name",
-                                &entry,
-                            );
-                            continue;
-                        }
-                    };
+                    let name = entry.name();
                     let size = match entry.size() {
                         Some(size) => size,
                         None => {
@@ -191,16 +182,7 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                 }
                 DwarfTag::DW_TAG_union_type => {
                     let id = TypeEntryId::new(entry.offset());
-                    let name = match entry.name() {
-                        Some(name) => name,
-                        None => {
-                            Self::warning_no_expected_attribute(
-                                "structure_type entry should have name",
-                                &entry,
-                            );
-                            continue;
-                        }
-                    };
+                    let name = entry.name();
                     let size = match entry.size() {
                         Some(size) => size,
                         None => {

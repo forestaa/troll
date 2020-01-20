@@ -317,7 +317,7 @@ fn extract_structure() {
     let expected_types = vec![
         TypeEntry::new_structure_type_entry(
             TypeEntryId::new(Offset::new(45)),
-            String::from("hoge"),
+            Some(String::from("hoge")),
             8,
             vec![
                 StructureTypeMemberEntry {
@@ -408,7 +408,7 @@ fn extract_union() {
     let expected_types = vec![
         TypeEntry::new_union_type_entry(
             TypeEntryId::new(Offset::new(45)),
-            String::from("book"),
+            Some(String::from("book")),
             4,
             vec![
                 UnionTypeMemberEntry {
@@ -423,6 +423,120 @@ fn extract_union() {
         ),
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(83)), String::from("char"), 1),
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(90)), String::from("int"), 4),
+    ];
+
+    extract_test(infos, expected_variables, expected_types);
+}
+
+#[test]
+fn extract_anonymous_union_structure() {
+    let infos = vec![
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(45))
+            .tag(DwarfTag::DW_TAG_structure_type)
+            .byte_size(4)
+            .children(vec![DwarfInfoBuilder::new()
+                .offset(Offset::new(54))
+                .tag(DwarfTag::DW_TAG_unimplemented)
+                .name("a")
+                .type_offset(Offset::new(66))
+                .data_member_location(0)
+                .build()])
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(66))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(73))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("a")
+            .type_offset(Offset::new(45))
+            .location(Location::new(16428))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(93))
+            .tag(DwarfTag::DW_TAG_union_type)
+            .byte_size(4)
+            .children(vec![
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(102))
+                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .name("a")
+                    .type_offset(Offset::new(66))
+                    .build(),
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(112))
+                    .tag(DwarfTag::DW_TAG_unimplemented)
+                    .name("b")
+                    .type_offset(Offset::new(123))
+                    .build(),
+            ])
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(123))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(1)
+            .name("char")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(130))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("ab")
+            .type_offset(Offset::new(93))
+            .location(Location::new(16432))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(151))
+            .tag(DwarfTag::DW_TAG_unimplemented)
+            .name("main")
+            .type_offset(Offset::new(66))
+            .build(),
+    ];
+
+    let expected_variables = vec![
+        GlobalVariable::new(
+            Some(Address::new(Location::new(16428))),
+            String::from("a"),
+            TypeEntryId::new(Offset::new(45)),
+        ),
+        GlobalVariable::new(
+            Some(Address::new(Location::new(16432))),
+            String::from("ab"),
+            TypeEntryId::new(Offset::new(93)),
+        ),
+    ];
+
+    let expected_types = vec![
+        TypeEntry::new_structure_type_entry(
+            TypeEntryId::new(Offset::new(45)),
+            None,
+            4,
+            vec![StructureTypeMemberEntry {
+                name: String::from("a"),
+                type_ref: TypeEntryId::new(Offset::new(66)),
+                location: 0,
+            }],
+        ),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(66)), String::from("int"), 4),
+        TypeEntry::new_union_type_entry(
+            TypeEntryId::new(Offset::new(93)),
+            None,
+            4,
+            vec![
+                UnionTypeMemberEntry {
+                    name: String::from("a"),
+                    type_ref: TypeEntryId::new(Offset::new(66)),
+                },
+                UnionTypeMemberEntry {
+                    name: String::from("b"),
+                    type_ref: TypeEntryId::new(Offset::new(123)),
+                },
+            ],
+        ),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(123)), String::from("char"), 1),
     ];
 
     extract_test(infos, expected_variables, expected_types);
@@ -652,7 +766,7 @@ fn extract_complex_structure() {
     let expected_types = vec![
         TypeEntry::new_structure_type_entry(
             TypeEntryId::new(Offset::new(45)),
-            String::from("student"),
+            Some(String::from("student")),
             4,
             vec![StructureTypeMemberEntry {
                 name: String::from("name"),
@@ -673,7 +787,7 @@ fn extract_complex_structure() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(95)), String::from("char"), 1),
         TypeEntry::new_structure_type_entry(
             TypeEntryId::new(Offset::new(102)),
-            String::from("hoge"),
+            Some(String::from("hoge")),
             24,
             vec![
                 StructureTypeMemberEntry {

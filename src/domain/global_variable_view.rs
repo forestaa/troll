@@ -72,10 +72,10 @@ pub enum TypeView {
         name: String,
     },
     Structure {
-        name: String,
+        name: Option<String>,
     },
     Union {
-        name: String,
+        name: Option<String>,
     },
     Array {
         element_type: Box<TypeView>,
@@ -112,12 +112,16 @@ impl TypeView {
         Self::Base { name: name.into() }
     }
 
-    pub fn new_structure_type_view<S: Into<String>>(name: S) -> Self {
-        Self::Structure { name: name.into() }
+    pub fn new_structure_type_view<S: Into<String>>(name: Option<S>) -> Self {
+        Self::Structure {
+            name: name.map(S::into),
+        }
     }
 
-    pub fn new_union_type_view<S: Into<String>>(name: S) -> Self {
-        Self::Union { name: name.into() }
+    pub fn new_union_type_view<S: Into<String>>(name: Option<S>) -> Self {
+        Self::Union {
+            name: name.map(S::into),
+        }
     }
 
     pub fn new_array_type_view(element_type: Self, upper_bound: Option<usize>) -> Self {
