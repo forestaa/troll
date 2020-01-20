@@ -55,6 +55,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     type_name.clone(),
                     *size,
                 )),
+                TypeEntryKind::EnumType { .. } => unimplemented!(),
                 TypeEntryKind::StructureType {
                     name: type_name,
                     size,
@@ -285,6 +286,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     type_name.clone(),
                     *size,
                 )),
+                TypeEntryKind::EnumType { .. } => unimplemented!(),
                 TypeEntryKind::StructureType {
                     name: type_name,
                     size,
@@ -578,6 +580,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                 TypeEntryKind::BaseType { name, .. } => {
                     Some(TypeView::new_base_type_view(name.clone()))
                 }
+                TypeEntryKind::EnumType { .. } => unimplemented!(),
                 TypeEntryKind::StructureType { name, .. } => {
                     Some(TypeView::new_structure_type_view(name.clone()))
                 }
