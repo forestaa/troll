@@ -1,4 +1,5 @@
 use super::global_variable::Address;
+use super::type_entry::EnumeratorEntry;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GlobalVariableView {
@@ -81,7 +82,27 @@ pub enum TypeView {
         element_type: Box<TypeView>,
         upper_bound: Option<usize>,
     },
+    Enum {
+        name: Option<String>,
+        type_view: Box<TypeView>,
+        enumerators: Vec<Enumerator>,
+    },
     Function,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Enumerator {
+    pub name: String,
+    pub value: usize,
+}
+
+impl From<&EnumeratorEntry> for Enumerator {
+    fn from(entry: &EnumeratorEntry) -> Self {
+        Enumerator {
+            name: entry.name.clone(),
+            value: entry.value,
+        }
+    }
 }
 
 impl TypeView {
@@ -128,6 +149,18 @@ impl TypeView {
         Self::Array {
             element_type: Box::new(element_type),
             upper_bound,
+        }
+    }
+
+    pub fn new_enum_type_view<S: Into<String>>(
+        name: Option<S>,
+        type_view: Self,
+        enumerators: Vec<Enumerator>,
+    ) -> Self {
+        Self::Enum {
+            name: name.map(S::into),
+            type_view: Box::new(type_view),
+            enumerators,
         }
     }
 

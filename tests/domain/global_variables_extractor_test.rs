@@ -244,6 +244,171 @@ fn extract_array() {
 }
 
 #[test]
+fn extract_enum() {
+    let infos = vec![
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(45))
+            .tag(DwarfTag::DW_TAG_enumeration_type)
+            .name("AB")
+            .byte_size(4)
+            .type_offset(Offset::new(71))
+            .children(vec![
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(62))
+                    .tag(DwarfTag::DW_TAG_enumerator)
+                    .name("A")
+                    .const_value(0)
+                    .build(),
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(66))
+                    .tag(DwarfTag::DW_TAG_enumerator)
+                    .name("B")
+                    .const_value(1)
+                    .build(),
+            ])
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(71))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("unsigned int")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(78))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("ab")
+            .type_offset(Offset::new(45))
+            .location(Location::new(16428))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(99))
+            .tag(DwarfTag::DW_TAG_unimplemented)
+            .name("main")
+            .type_offset(Offset::new(129))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(129))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+    ];
+
+    let expected_variables = vec![GlobalVariable::new(
+        Some(Address::new(Location::new(16428))),
+        String::from("ab"),
+        TypeEntryId::new(Offset::new(45)),
+    )];
+    let expected_types = vec![
+        TypeEntry::new_enum_type_entry(
+            TypeEntryId::new(Offset::new(45)),
+            Some(String::from("AB")),
+            TypeEntryId::new(Offset::new(71)),
+            vec![
+                EnumeratorEntry {
+                    name: String::from("A"),
+                    value: 0,
+                },
+                EnumeratorEntry {
+                    name: String::from("B"),
+                    value: 1,
+                },
+            ],
+        ),
+        TypeEntry::new_base_type_entry(
+            TypeEntryId::new(Offset::new(71)),
+            String::from("unsigned int"),
+            4,
+        ),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(129)), String::from("int"), 4),
+    ];
+
+    extract_test(infos, expected_variables, expected_types);
+}
+
+#[test]
+fn extract_anonymous_enum() {
+    let infos = vec![
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(45))
+            .tag(DwarfTag::DW_TAG_enumeration_type)
+            .byte_size(4)
+            .type_offset(Offset::new(68))
+            .children(vec![
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(59))
+                    .tag(DwarfTag::DW_TAG_enumerator)
+                    .name("A")
+                    .const_value(0)
+                    .build(),
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(63))
+                    .tag(DwarfTag::DW_TAG_enumerator)
+                    .name("B")
+                    .const_value(1)
+                    .build(),
+            ])
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(68))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("unsigned int")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(75))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("ab")
+            .type_offset(Offset::new(45))
+            .location(Location::new(16428))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(96))
+            .tag(DwarfTag::DW_TAG_unimplemented)
+            .name("main")
+            .type_offset(Offset::new(126))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(126))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+    ];
+
+    let expected_variables = vec![GlobalVariable::new(
+        Some(Address::new(Location::new(16428))),
+        String::from("ab"),
+        TypeEntryId::new(Offset::new(45)),
+    )];
+    let expected_types = vec![
+        TypeEntry::new_enum_type_entry(
+            TypeEntryId::new(Offset::new(45)),
+            None,
+            TypeEntryId::new(Offset::new(68)),
+            vec![
+                EnumeratorEntry {
+                    name: String::from("A"),
+                    value: 0,
+                },
+                EnumeratorEntry {
+                    name: String::from("B"),
+                    value: 1,
+                },
+            ],
+        ),
+        TypeEntry::new_base_type_entry(
+            TypeEntryId::new(Offset::new(68)),
+            String::from("unsigned int"),
+            4,
+        ),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(126)), String::from("int"), 4),
+    ];
+
+    extract_test(infos, expected_variables, expected_types);
+}
+
+#[test]
 fn extract_structure() {
     let infos = vec![
         DwarfInfoBuilder::new()

@@ -169,6 +169,115 @@ fn dwarf_info_array() {
 
 #[test]
 #[ignore]
+fn dwarf_info_enum() {
+    let expected = vec![
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(45))
+            .tag(DwarfTag::DW_TAG_enumeration_type)
+            .name("AB")
+            .byte_size(4)
+            .type_offset(Offset::new(71))
+            .children(vec![
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(62))
+                    .tag(DwarfTag::DW_TAG_enumerator)
+                    .name("A")
+                    .const_value(0)
+                    .build(),
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(66))
+                    .tag(DwarfTag::DW_TAG_enumerator)
+                    .name("B")
+                    .const_value(1)
+                    .build(),
+            ])
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(71))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("unsigned int")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(78))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("ab")
+            .type_offset(Offset::new(45))
+            .location(Location::new(16428))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(99))
+            .tag(DwarfTag::DW_TAG_unimplemented)
+            .name("main")
+            .type_offset(Offset::new(129))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(129))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+    ];
+
+    dwarf_info_intoiterator_test("examples/enum", expected);
+}
+
+#[test]
+#[ignore]
+fn dwarf_info_anonymous_enum() {
+    let expected = vec![
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(45))
+            .tag(DwarfTag::DW_TAG_enumeration_type)
+            .byte_size(4)
+            .type_offset(Offset::new(68))
+            .children(vec![
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(59))
+                    .tag(DwarfTag::DW_TAG_enumerator)
+                    .name("A")
+                    .const_value(0)
+                    .build(),
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(63))
+                    .tag(DwarfTag::DW_TAG_enumerator)
+                    .name("B")
+                    .const_value(1)
+                    .build(),
+            ])
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(68))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("unsigned int")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(75))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("ab")
+            .type_offset(Offset::new(45))
+            .location(Location::new(16428))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(96))
+            .tag(DwarfTag::DW_TAG_unimplemented)
+            .name("main")
+            .type_offset(Offset::new(126))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(126))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+    ];
+
+    dwarf_info_intoiterator_test("examples/anonymous-enum", expected);
+}
+
+#[test]
+#[ignore]
 fn dwarf_info_structure() {
     let expected = vec![
         DwarfInfoBuilder::new()

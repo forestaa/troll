@@ -38,6 +38,11 @@ pub enum TypeEntryKind {
         name: String,
         size: usize,
     },
+    EnumType {
+        name: Option<String>,
+        type_ref: TypeEntryId,
+        enumerators: Vec<EnumeratorEntry>,
+    },
     StructureType {
         name: Option<String>,
         size: usize,
@@ -56,6 +61,12 @@ pub enum TypeEntryKind {
         argument_type_ref: Vec<TypeEntryId>,
         return_type_ref: Option<TypeEntryId>,
     },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct EnumeratorEntry {
+    pub name: String,
+    pub value: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -99,6 +110,20 @@ impl TypeEntry {
 
     pub fn new_base_type_entry(id: TypeEntryId, name: String, size: usize) -> TypeEntry {
         let kind = TypeEntryKind::BaseType { name, size };
+        TypeEntry { id, kind }
+    }
+
+    pub fn new_enum_type_entry(
+        id: TypeEntryId,
+        name: Option<String>,
+        type_ref: TypeEntryId,
+        enumerators: Vec<EnumeratorEntry>,
+    ) -> TypeEntry {
+        let kind = TypeEntryKind::EnumType {
+            name,
+            type_ref,
+            enumerators,
+        };
         TypeEntry { id, kind }
     }
 

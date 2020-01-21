@@ -1,5 +1,5 @@
 use super::global_variable::{Address, GlobalVariable};
-use super::global_variable_view::{GlobalVariableView, TypeView};
+use super::global_variable_view::*;
 use super::type_entry::*;
 use super::type_entry_repository::TypeEntryRepository;
 use log::warn;
@@ -55,6 +55,16 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     type_name.clone(),
                     *size,
                 )),
+                TypeEntryKind::EnumType {
+                    name: type_name,
+                    type_ref,
+                    enumerators,
+                } => self.from_global_variable_enum_type(
+                    global_variable,
+                    type_name.clone(),
+                    type_ref.clone(),
+                    enumerators,
+                ),
                 TypeEntryKind::StructureType {
                     name: type_name,
                     size,
@@ -164,6 +174,26 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
             TypeView::new_base_type_view(type_name),
             Vec::new(),
         )
+    }
+
+    fn from_global_variable_enum_type(
+        &self,
+        global_variable: GlobalVariable,
+        type_name: Option<String>,
+        type_ref: TypeEntryId,
+        enumerators: &Vec<EnumeratorEntry>,
+    ) -> Option<GlobalVariableView> {
+        let global_variable =
+            GlobalVariable::new(global_variable.address(), global_variable.name(), type_ref);
+
+        let mut global_variable_view = self.from_global_variable(global_variable)?;
+
+        let enumerators = enumerators.iter().map(Enumerator::from).collect();
+        global_variable_view.map_type_view(|type_view| {
+            TypeView::new_enum_type_view(type_name, type_view, enumerators)
+        });
+
+        Some(global_variable_view)
     }
 
     fn from_global_variable_structure_type(
@@ -285,6 +315,17 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     type_name.clone(),
                     *size,
                 )),
+                TypeEntryKind::EnumType {
+                    name: type_name,
+                    type_ref,
+                    enumerators,
+                } => self.from_structure_type_member_entry_enum_type(
+                    member,
+                    base_address,
+                    type_name.clone(),
+                    type_ref.clone(),
+                    enumerators,
+                ),
                 TypeEntryKind::StructureType {
                     name: type_name,
                     size,
@@ -417,6 +458,29 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
             TypeView::new_base_type_view(type_name),
             Vec::new(),
         )
+    }
+
+    fn from_structure_type_member_entry_enum_type(
+        &self,
+        member: &StructureTypeMemberEntry,
+        base_address: &Option<Address>,
+        type_name: Option<String>,
+        type_ref: TypeEntryId,
+        enumerators: &Vec<EnumeratorEntry>,
+    ) -> Option<GlobalVariableView> {
+        let member = StructureTypeMemberEntry {
+            name: member.name.clone(),
+            location: member.location,
+            type_ref: type_ref,
+        };
+        let mut member_view = self.from_structure_type_member_entry(&member, base_address)?;
+
+        let enumerators = enumerators.iter().map(Enumerator::from).collect();
+        member_view.map_type_view(|type_view| {
+            TypeView::new_enum_type_view(type_name, type_view, enumerators)
+        });
+
+        Some(member_view)
     }
 
     fn from_structure_type_member_entry_structure_type(
@@ -578,6 +642,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                 TypeEntryKind::BaseType { name, .. } => {
                     Some(TypeView::new_base_type_view(name.clone()))
                 }
+                TypeEntryKind::EnumType { .. } => unimplemented!(),
                 TypeEntryKind::StructureType { name, .. } => {
                     Some(TypeView::new_structure_type_view(name.clone()))
                 }

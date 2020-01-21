@@ -127,6 +127,46 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                     let type_entry = TypeEntry::new_base_type_entry(id, name, size);
                     self.type_entry_repository.save(type_entry);
                 }
+                DwarfTag::DW_TAG_enumeration_type => {
+                    let id = TypeEntryId::new(entry.offset());
+                    let name = entry.name();
+                    let type_ref = match entry.type_offset() {
+                        Some(type_ref) => TypeEntryId::new(type_ref),
+                        None => {
+                            Self::warning_no_expected_attribute(
+                                "enumeration_type entry should have type",
+                                &entry,
+                            );
+                            continue;
+                        }
+                    };
+
+                    let enumerators = entry
+                        .children()
+                        .iter()
+                        .flat_map(|entry| {
+                            let name = entry.name().or_else(|| {
+                                Self::warning_no_expected_attribute(
+                                    "enumerator entry should have name",
+                                    &entry,
+                                );
+                                None
+                            })?;
+                            let value = entry.const_value().or_else(|| {
+                                Self::warning_no_expected_attribute(
+                                    "enumerator entry should have const_value",
+                                    &entry,
+                                );
+                                None
+                            })?;
+
+                            Some(EnumeratorEntry { name, value })
+                        })
+                        .collect();
+                    let type_entry =
+                        TypeEntry::new_enum_type_entry(id, name, type_ref, enumerators);
+                    self.type_entry_repository.save(type_entry);
+                }
                 DwarfTag::DW_TAG_structure_type => {
                     let id = TypeEntryId::new(entry.offset());
 
@@ -266,6 +306,7 @@ impl<'repo> GlobalVariablesExtractor<'repo> {
                         TypeEntry::new_function_type_entry(id, argument_type_ref, return_type_ref);
                     self.type_entry_repository.save(type_entry);
                 }
+                DwarfTag::DW_TAG_enumerator => (),
                 DwarfTag::DW_TAG_subrange_type => (),
                 DwarfTag::DW_TAG_formal_parameter => (),
                 DwarfTag::DW_TAG_unimplemented => (),

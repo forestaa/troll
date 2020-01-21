@@ -1,5 +1,6 @@
-use crate::domain::global_variable_view::{GlobalVariableView, TypeView};
+use crate::domain::global_variable_view::*;
 use std::fmt;
+use std::fmt::Write;
 
 const ADDRESS_WIDTH: usize = 10;
 const SIZE_WIDTH: usize = 5;
@@ -143,6 +144,17 @@ impl fmt::Display for TypeView {
             TypeView::Union { name } => {
                 write!(f, "union {}", name.as_ref().unwrap_or(&String::from("")))
             }
+            TypeView::Enum {
+                name,
+                type_view,
+                enumerators,
+            } => format!(
+                "enum {}: {}  values = {}",
+                name.as_ref().unwrap_or(&String::from("")),
+                type_view,
+                Enumerators(enumerators)
+            )
+            .fmt(f),
             TypeView::Array {
                 element_type,
                 upper_bound,
@@ -152,5 +164,25 @@ impl fmt::Display for TypeView {
             },
             TypeView::Function {} => write!(f, "function"),
         }
+    }
+}
+
+impl fmt::Display for Enumerator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        format!("{}: {}", self.name, self.value).fmt(f)
+    }
+}
+
+struct Enumerators<'a>(&'a Vec<Enumerator>);
+
+impl<'a> fmt::Display for Enumerators<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut out = String::new();
+
+        for enumerator in self.0 {
+            let _ = write!(&mut out, "{}, ", enumerator);
+        }
+
+        out.fmt(f)
     }
 }
