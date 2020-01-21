@@ -133,7 +133,21 @@ impl ParentName {
 impl fmt::Display for TypeView {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TypeView::TypeDef { name, .. } => write!(f, "{}", name),
+            TypeView::TypeDef { name, type_view } => match **type_view {
+                TypeView::Enum {
+                    name: ref enum_name,
+                    ref type_view,
+                    ref enumerators,
+                } => format!(
+                    "{} enum {}: {}  values = {}",
+                    name,
+                    enum_name.as_ref().unwrap_or(&String::from("")),
+                    type_view,
+                    Enumerators(enumerators)
+                )
+                .fmt(f),
+                _ => write!(f, "{}", name),
+            },
             TypeView::Const { type_view } => write!(f, "const {}", type_view),
             TypeView::VoidPointer => write!(f, "void pointer"),
             TypeView::Pointer { type_view } => write!(f, "pointer to {}", type_view),
