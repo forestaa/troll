@@ -642,7 +642,19 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                 TypeEntryKind::BaseType { name, .. } => {
                     Some(TypeView::new_base_type_view(name.clone()))
                 }
-                TypeEntryKind::EnumType { .. } => unimplemented!(),
+                TypeEntryKind::EnumType {
+                    name,
+                    type_ref,
+                    enumerators,
+                } => {
+                    let type_view = self.type_view_from_type_entry(type_ref)?;
+                    let enumerators = enumerators.iter().map(Enumerator::from).collect();
+                    Some(TypeView::new_enum_type_view(
+                        name.clone(),
+                        type_view,
+                        enumerators,
+                    ))
+                }
                 TypeEntryKind::StructureType { name, .. } => {
                     Some(TypeView::new_structure_type_view(name.clone()))
                 }
