@@ -1,24 +1,25 @@
-use std::collections::HashMap;
+use std::ops::{Deref, DerefMut};
 
-use super::type_entry::{TypeEntry, TypeEntryId};
+use super::entity_repository::Repository;
+use super::type_entry::TypeEntry;
 
-#[derive(Debug)]
-pub struct TypeEntryRepository {
-    map: HashMap<TypeEntryId, TypeEntry>,
-}
+pub struct TypeEntryRepository(Repository<TypeEntry>);
 
 impl TypeEntryRepository {
-    pub fn new() -> TypeEntryRepository {
-        TypeEntryRepository {
-            map: HashMap::new(),
-        }
+    pub fn new() -> Self {
+        Self(Repository::new())
     }
+}
 
-    pub fn save(&mut self, value: TypeEntry) {
-        self.map.insert(value.id(), value);
+impl Deref for TypeEntryRepository {
+    type Target = Repository<TypeEntry>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
+}
 
-    pub fn find_by_id(&self, id: &TypeEntryId) -> Option<&TypeEntry> {
-        self.map.get(id)
+impl DerefMut for TypeEntryRepository {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
