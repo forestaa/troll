@@ -4,6 +4,7 @@ use troll::domain::global_variable::*;
 use troll::domain::global_variables_extractor::*;
 use troll::domain::type_entry::*;
 use troll::domain::type_entry_repository::TypeEntryRepository;
+use troll::domain::variable_declaration_repository::VariableDeclarationRepository;
 use troll::library::dwarf::{DwarfInfo, DwarfInfoBuilder, DwarfTag, Location, Offset};
 
 fn init() {
@@ -18,7 +19,11 @@ fn extract_test(
     init();
 
     let mut type_entry_repository = TypeEntryRepository::new();
-    let mut global_variables_extractor = GlobalVariablesExtractor::new(&mut type_entry_repository);
+    let mut variable_declaration_repository = VariableDeclarationRepository::new();
+    let mut global_variables_extractor = GlobalVariablesExtractor::new(
+        &mut type_entry_repository,
+        &mut variable_declaration_repository,
+    );
 
     let got_variables = global_variables_extractor.extract(infos.into_iter());
     assert_eq!(expected_variables, got_variables);

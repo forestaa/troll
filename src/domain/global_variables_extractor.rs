@@ -3,16 +3,22 @@ use log::warn;
 use super::global_variable::{Address, GlobalVariable};
 use super::type_entry::*;
 use super::type_entry_repository::TypeEntryRepository;
+use super::variable_declaration_repository::VariableDeclarationRepository;
 use crate::library::dwarf::{DwarfInfo, DwarfTag};
 
-pub struct GlobalVariablesExtractor<'repo> {
-    type_entry_repository: &'repo mut TypeEntryRepository,
+pub struct GlobalVariablesExtractor<'type_repo, 'dec_repo> {
+    type_entry_repository: &'type_repo mut TypeEntryRepository,
+    variable_declaration_repository: &'dec_repo mut VariableDeclarationRepository,
 }
 
-impl<'repo> GlobalVariablesExtractor<'repo> {
-    pub fn new(type_entry_repository: &mut TypeEntryRepository) -> GlobalVariablesExtractor {
-        GlobalVariablesExtractor {
+impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
+    pub fn new(
+        type_entry_repository: &'type_repo mut TypeEntryRepository,
+        variable_declaration_repository: &'dec_repo mut VariableDeclarationRepository,
+    ) -> Self {
+        Self {
             type_entry_repository,
+            variable_declaration_repository,
         }
     }
 
