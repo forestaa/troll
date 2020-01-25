@@ -3,7 +3,7 @@ LD = gcc
 CFLAGS = -Os -g3
 READELF = eu-readelf
 READELFFLAGS = -winfo
-SRCS = $(filter-out many-compilation-units-sub.c, $(wildcard *.c))
+SRCS = $(filter-out %-sub.c, $(wildcard *.c))
 BINARIES = $(SRCS:%.c=%)
 DEBUGS = $(BINARIES:%=%.debug)
 
@@ -11,6 +11,9 @@ DEBUGS = $(BINARIES:%=%.debug)
 all: $(BINARIES) $(DEBUGS)
 
 many-compilation-units: many-compilation-units.c many-compilation-units-sub.c
+	$(CC) $(CFLAGS) -o $@ $^
+
+extern: extern.c extern-sub.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 %: %.c
