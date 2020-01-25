@@ -85,6 +85,8 @@ pub struct DwarfInfo {
     upper_bound: Option<usize>,
     const_value: Option<usize>,
     data_member_location: Option<usize>,
+    declaration: Option<bool>,
+    specification: Option<Offset>,
     children: Vec<DwarfInfo>,
 }
 
@@ -123,6 +125,14 @@ impl DwarfInfo {
 
     pub fn data_member_location(&self) -> Option<usize> {
         self.data_member_location
+    }
+
+    pub fn declaration(&self) -> Option<bool> {
+        self.declaration
+    }
+
+    pub fn specification(&self) -> Option<Offset> {
+        self.specification.clone()
     }
 
     pub fn children(&self) -> &Vec<DwarfInfo> {
@@ -164,6 +174,8 @@ impl DwarfInfoIntoIterator {
                 let upper_bound = Self::get_upper_bound(entry);
                 let const_value = Self::get_const_value(entry);
                 let data_member_location = Self::get_data_member_location(entry);
+                let declaration = Self::get_declaration(entry);
+                let specification = Self::get_specification(header, entry);
 
                 let mut children = Vec::new();
                 if entry.has_children() {
@@ -181,6 +193,8 @@ impl DwarfInfoIntoIterator {
                     upper_bound,
                     const_value,
                     data_member_location,
+                    declaration,
+                    specification,
                     children: children,
                 })
             }
@@ -352,6 +366,41 @@ impl DwarfInfoIntoIterator {
             None
         }
     }
+
+    fn get_declaration<'input, 'abbrev, 'unit>(
+        entry: &gimli::DebuggingInformationEntry<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+    ) -> Option<bool> {
+        if let Some(gimli::read::AttributeValue::Flag(flag)) =
+            entry.attr_value(gimli::DW_AT_declaration).unwrap()
+        {
+            Some(flag)
+        } else {
+            None
+        }
+    }
+
+    fn get_specification<'input, 'abbrev, 'unit>(
+        header: &gimli::CompilationUnitHeader<
+            gimli::read::EndianSlice<'input, gimli::RunTimeEndian>,
+        >,
+        entry: &gimli::DebuggingInformationEntry<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+    ) -> Option<Offset> {
+        if let Some(gimli::read::AttributeValue::UnitRef(offset)) =
+            entry.attr_value(gimli::DW_AT_specification).unwrap()
+        {
+            Some(Offset::new(offset.to_debug_info_offset(header).0))
+        } else {
+            None
+        }
+    }
 }
 
 impl IntoIterator for DwarfInfoIntoIterator {
@@ -416,6 +465,8 @@ pub struct DwarfInfoBuilder<OffsetP, TagP> {
     upper_bound: Option<usize>,
     const_value: Option<usize>,
     data_member_location: Option<usize>,
+    declaration: Option<bool>,
+    specification: Option<Offset>,
     children: Vec<DwarfInfo>,
 }
 
@@ -431,6 +482,8 @@ impl DwarfInfoBuilder<(), ()> {
             upper_bound: None,
             const_value: None,
             data_member_location: None,
+            declaration: None,
+            specification: None,
             children: Vec::new(),
         }
     }
@@ -448,6 +501,8 @@ impl DwarfInfoBuilder<Offset, DwarfTag> {
             upper_bound: self.upper_bound,
             const_value: self.const_value,
             data_member_location: self.data_member_location,
+            declaration: self.declaration,
+            specification: self.specification,
             children: self.children,
         }
     }
@@ -465,6 +520,8 @@ impl<OffsetP> DwarfInfoBuilder<OffsetP, ()> {
             upper_bound: self.upper_bound,
             const_value: self.const_value,
             data_member_location: self.data_member_location,
+            declaration: self.declaration,
+            specification: self.specification,
             children: self.children,
         }
     }
@@ -482,6 +539,8 @@ impl<TagP> DwarfInfoBuilder<(), TagP> {
             upper_bound: self.upper_bound,
             const_value: self.const_value,
             data_member_location: self.data_member_location,
+            declaration: self.declaration,
+            specification: self.specification,
             children: self.children,
         }
     }
@@ -520,6 +579,16 @@ impl<OffsetP, TagP> DwarfInfoBuilder<OffsetP, TagP> {
 
     pub fn data_member_location(mut self, data_member_location: usize) -> Self {
         self.data_member_location = Some(data_member_location);
+        self
+    }
+
+    pub fn declaration(mut self, declaration: bool) -> Self {
+        self.declaration = Some(declaration);
+        self
+    }
+
+    pub fn specification(mut self, specification: Offset) -> Self {
+        self.specification = Some(specification);
         self
     }
 

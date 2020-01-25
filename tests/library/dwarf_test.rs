@@ -739,6 +739,7 @@ fn dwarf_info_many_compilation_units() {
             .offset(Offset::new(120))
             .tag(DwarfTag::DW_TAG_unimplemented)
             .name("sub1")
+            .declaration(true)
             .build(),
         DwarfInfoBuilder::new()
             .offset(Offset::new(182))
@@ -768,4 +769,51 @@ fn dwarf_info_many_compilation_units() {
     ];
 
     dwarf_info_intoiterator_test("examples/many-compilation-units", expected);
+}
+
+#[test]
+#[ignore]
+fn dwarf_info_extern() {
+    let expected = vec![
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(45))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("c")
+            .type_offset(Offset::new(55))
+            .declaration(true)
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(55))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(62))
+            .tag(DwarfTag::DW_TAG_unimplemented)
+            .name("main")
+            .type_offset(Offset::new(55))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(126))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("c")
+            .type_offset(Offset::new(136))
+            .declaration(true)
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(136))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(143))
+            .tag(DwarfTag::DW_TAG_variable)
+            .specification(Offset::new(126))
+            .location(Location::new(16428))
+            .build(),
+    ];
+
+    dwarf_info_intoiterator_test("examples/extern", expected);
 }
