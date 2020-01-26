@@ -362,40 +362,43 @@ fn dwarf_info_union() {
                     .offset(Offset::new(58))
                     .tag(DwarfTag::DW_TAG_unimplemented)
                     .name("name")
-                    .type_offset(Offset::new(83))
+                    .type_offset(Offset::new(86))
                     .build(),
                 DwarfInfoBuilder::new()
                     .offset(Offset::new(70))
                     .tag(DwarfTag::DW_TAG_unimplemented)
                     .name("price")
-                    .type_offset(Offset::new(90))
+                    .type_offset(Offset::new(93))
+                    .byte_size(4)
+                    .bit_size(8)
+                    .bit_offset(24)
                     .build(),
             ])
             .build(),
         DwarfInfoBuilder::new()
-            .offset(Offset::new(83))
+            .offset(Offset::new(86))
             .tag(DwarfTag::DW_TAG_base_type)
             .byte_size(1)
             .name("char")
             .build(),
         DwarfInfoBuilder::new()
-            .offset(Offset::new(90))
+            .offset(Offset::new(93))
             .tag(DwarfTag::DW_TAG_base_type)
             .byte_size(4)
             .name("int")
             .build(),
         DwarfInfoBuilder::new()
-            .offset(Offset::new(97))
+            .offset(Offset::new(100))
             .tag(DwarfTag::DW_TAG_variable)
             .name("book")
             .type_offset(Offset::new(45))
             .location(Location::new(16428))
             .build(),
         DwarfInfoBuilder::new()
-            .offset(Offset::new(119))
+            .offset(Offset::new(122))
             .tag(DwarfTag::DW_TAG_unimplemented)
             .name("main")
-            .type_offset(Offset::new(90))
+            .type_offset(Offset::new(93))
             .build(),
     ];
 
