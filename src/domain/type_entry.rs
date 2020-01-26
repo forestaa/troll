@@ -1,3 +1,4 @@
+use super::entity::Entity;
 use crate::library::dwarf;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -181,5 +182,13 @@ impl TypeEntry {
 
     pub fn id(&self) -> TypeEntryId {
         self.id.clone()
+    }
+}
+
+impl Entity for TypeEntry {
+    type Id = TypeEntryId;
+
+    fn id(&self) -> &Self::Id {
+        &self.id
     }
 }

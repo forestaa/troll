@@ -1,10 +1,11 @@
 extern crate troll;
 
-use troll::domain::global_variable::{Address, GlobalVariable};
+use troll::domain::global_variable::*;
 use troll::domain::global_variable_view::*;
 use troll::domain::global_variable_view_factory::*;
 use troll::domain::type_entry::*;
 use troll::domain::type_entry_repository::TypeEntryRepository;
+use troll::domain::variable_declaration_repository::VariableDeclarationRepository;
 use troll::library::dwarf::{Location, Offset};
 
 fn init() {
@@ -13,14 +14,21 @@ fn init() {
 
 fn from_global_variable_test(
     defined_types: Vec<TypeEntry>,
+    variable_decs: Vec<VariableDeclarationEntry>,
     global_variable: GlobalVariable,
     expected_view: GlobalVariableView,
 ) {
-    from_global_variables_test(defined_types, vec![global_variable], vec![expected_view]);
+    from_global_variables_test(
+        defined_types,
+        variable_decs,
+        vec![global_variable],
+        vec![expected_view],
+    );
 }
 
 fn from_global_variables_test(
     defined_types: Vec<TypeEntry>,
+    variable_decs: Vec<VariableDeclarationEntry>,
     global_variables: Vec<GlobalVariable>,
     expected_views: Vec<GlobalVariableView>,
 ) {
@@ -30,7 +38,13 @@ fn from_global_variables_test(
     for defined_type in defined_types {
         type_entry_repository.save(defined_type);
     }
-    let factory = GlobalVariableViewFactory::new(&type_entry_repository);
+    let mut variable_declaration_repository = VariableDeclarationRepository::new();
+    for variable_dec in variable_decs {
+        variable_declaration_repository.save(variable_dec);
+    }
+
+    let factory =
+        GlobalVariableViewFactory::new(&type_entry_repository, &variable_declaration_repository);
 
     let got_views: Vec<GlobalVariableView> = global_variables
         .into_iter()
@@ -49,7 +63,7 @@ fn from_global_variable_const() {
         ),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(8196))),
         String::from("c"),
         TypeEntryId::new(Offset::new(72)),
@@ -63,7 +77,7 @@ fn from_global_variable_const() {
         vec![],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -77,7 +91,7 @@ fn from_global_variable_pointer() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(71)), String::from("int"), 4),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16432))),
         String::from("p"),
         TypeEntryId::new(Offset::new(65)),
@@ -91,7 +105,7 @@ fn from_global_variable_pointer() {
         vec![],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -110,7 +124,7 @@ fn from_global_variable_typedef() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(114)), String::from("int"), 4),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16428))),
         String::from("a"),
         TypeEntryId::new(Offset::new(45)),
@@ -124,7 +138,7 @@ fn from_global_variable_typedef() {
         vec![],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -143,7 +157,7 @@ fn from_global_variable_array() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(68)), String::from("int"), 4),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16432))),
         String::from("hoges"),
         TypeEntryId::new(Offset::new(45)),
@@ -179,7 +193,7 @@ fn from_global_variable_array() {
         ],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -208,7 +222,7 @@ fn from_global_variable_enum() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(129)), String::from("int"), 4),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16428))),
         String::from("ab"),
         TypeEntryId::new(Offset::new(45)),
@@ -235,7 +249,7 @@ fn from_global_variable_enum() {
         vec![],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -264,7 +278,7 @@ fn from_global_variable_anonymous_enum() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(126)), String::from("int"), 4),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16428))),
         String::from("ab"),
         TypeEntryId::new(Offset::new(45)),
@@ -291,7 +305,7 @@ fn from_global_variable_anonymous_enum() {
         vec![],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -328,7 +342,7 @@ fn from_global_variable_structure() {
         ),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16432))),
         String::from("hoge"),
         TypeEntryId::new(Offset::new(45)),
@@ -364,7 +378,7 @@ fn from_global_variable_structure() {
         ],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -389,7 +403,7 @@ fn from_global_variable_union() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(90)), String::from("int"), 4),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16428))),
         String::from("book"),
         TypeEntryId::new(Offset::new(45)),
@@ -418,7 +432,7 @@ fn from_global_variable_union() {
         ],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -454,12 +468,12 @@ fn from_global_variable_anonymous_union_structure() {
     ];
 
     let global_variables = vec![
-        GlobalVariable::new(
+        GlobalVariable::new_variable(
             Some(Address::new(Location::new(16428))),
             String::from("a"),
             TypeEntryId::new(Offset::new(45)),
         ),
-        GlobalVariable::new(
+        GlobalVariable::new_variable(
             Some(Address::new(Location::new(16432))),
             String::from("ab"),
             TypeEntryId::new(Offset::new(93)),
@@ -504,7 +518,7 @@ fn from_global_variable_anonymous_union_structure() {
         ),
     ];
 
-    from_global_variables_test(defined_types, global_variables, expected_views);
+    from_global_variables_test(defined_types, Vec::new(), global_variables, expected_views);
 }
 
 #[test]
@@ -527,7 +541,7 @@ fn from_global_variable_function_pointer() {
         ),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16424))),
         String::from("sub2"),
         TypeEntryId::new(Offset::new(101)),
@@ -541,7 +555,7 @@ fn from_global_variable_function_pointer() {
         vec![],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -608,7 +622,7 @@ fn from_global_variable_complex_structure() {
         ),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16480))),
         String::from("hoge"),
         TypeEntryId::new(Offset::new(184)),
@@ -787,5 +801,41 @@ fn from_global_variable_complex_structure() {
         ],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
+}
+
+#[test]
+fn from_global_variable_extern() {
+    let defined_types = vec![
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(55)), String::from("int"), 4),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(136)), String::from("int"), 4),
+    ];
+
+    let variable_decs = vec![
+        VariableDeclarationEntry::new(
+            VariableDeclarationEntryId::new(Offset::new(45)),
+            String::from("c"),
+            TypeEntryId::new(Offset::new(55)),
+        ),
+        VariableDeclarationEntry::new(
+            VariableDeclarationEntryId::new(Offset::new(126)),
+            String::from("c"),
+            TypeEntryId::new(Offset::new(136)),
+        ),
+    ];
+
+    let global_variable = GlobalVariable::new_variable_with_spec(
+        Some(Address::new(Location::new(16428))),
+        VariableDeclarationEntryId::new(Offset::new(126)),
+    );
+
+    let expected_view = GlobalVariableView::new(
+        String::from("c"),
+        Some(Address::new(Location::new(16428))),
+        4,
+        TypeView::new_base_type_view("int"),
+        vec![],
+    );
+
+    from_global_variable_test(defined_types, variable_decs, global_variable, expected_view);
 }

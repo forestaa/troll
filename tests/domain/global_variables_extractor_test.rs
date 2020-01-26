@@ -4,6 +4,7 @@ use troll::domain::global_variable::*;
 use troll::domain::global_variables_extractor::*;
 use troll::domain::type_entry::*;
 use troll::domain::type_entry_repository::TypeEntryRepository;
+use troll::domain::variable_declaration_repository::VariableDeclarationRepository;
 use troll::library::dwarf::{DwarfInfo, DwarfInfoBuilder, DwarfTag, Location, Offset};
 
 fn init() {
@@ -14,11 +15,16 @@ fn extract_test(
     infos: Vec<DwarfInfo>,
     expected_variables: Vec<GlobalVariable>,
     expected_types: Vec<TypeEntry>,
+    expected_decs: Vec<VariableDeclarationEntry>,
 ) {
     init();
 
     let mut type_entry_repository = TypeEntryRepository::new();
-    let mut global_variables_extractor = GlobalVariablesExtractor::new(&mut type_entry_repository);
+    let mut variable_declaration_repository = VariableDeclarationRepository::new();
+    let mut global_variables_extractor = GlobalVariablesExtractor::new(
+        &mut type_entry_repository,
+        &mut variable_declaration_repository,
+    );
 
     let got_variables = global_variables_extractor.extract(infos.into_iter());
     assert_eq!(expected_variables, got_variables);
@@ -27,6 +33,12 @@ fn extract_test(
             .find_by_id(&expected_type.id())
             .map(TypeEntry::clone);
         assert_eq!(Some(expected_type), got_type);
+    }
+    for expected_dec in expected_decs {
+        let got_dec = variable_declaration_repository
+            .find_by_id(&expected_dec.id)
+            .map(VariableDeclarationEntry::clone);
+        assert_eq!(Some(expected_dec), got_dec);
     }
 }
 
@@ -59,7 +71,7 @@ fn extract_const() {
             .build(),
     ];
 
-    let expected_variables = vec![GlobalVariable::new(
+    let expected_variables = vec![GlobalVariable::new_variable(
         Some(Address::new(Location::new(8196))),
         String::from("c"),
         TypeEntryId::new(Offset::new(72)),
@@ -72,7 +84,7 @@ fn extract_const() {
         ),
     ];
 
-    extract_test(infos, expected_variables, expected_types);
+    extract_test(infos, expected_variables, expected_types, Vec::new());
 }
 
 #[test]
@@ -105,7 +117,7 @@ fn extract_pointer() {
             .build(),
     ];
 
-    let expected_variables = vec![GlobalVariable::new(
+    let expected_variables = vec![GlobalVariable::new_variable(
         Some(Address::new(Location::new(16432))),
         String::from("p"),
         TypeEntryId::new(Offset::new(65)),
@@ -119,7 +131,7 @@ fn extract_pointer() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(71)), String::from("int"), 4),
     ];
 
-    extract_test(infos, expected_variables, expected_types);
+    extract_test(infos, expected_variables, expected_types, Vec::new());
 }
 
 #[test]
@@ -158,7 +170,7 @@ fn extract_typedef() {
             .build(),
     ];
 
-    let expected_variables = vec![GlobalVariable::new(
+    let expected_variables = vec![GlobalVariable::new_variable(
         Some(Address::new(Location::new(16428))),
         String::from("a"),
         TypeEntryId::new(Offset::new(45)),
@@ -177,7 +189,7 @@ fn extract_typedef() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(114)), String::from("int"), 4),
     ];
 
-    extract_test(infos, expected_variables, expected_types);
+    extract_test(infos, expected_variables, expected_types, Vec::new());
 }
 
 #[test]
@@ -221,7 +233,7 @@ fn extract_array() {
             .build(),
     ];
 
-    let expected_variables = vec![GlobalVariable::new(
+    let expected_variables = vec![GlobalVariable::new_variable(
         Some(Address::new(Location::new(16432))),
         String::from("hoges"),
         TypeEntryId::new(Offset::new(45)),
@@ -240,7 +252,7 @@ fn extract_array() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(68)), String::from("int"), 4),
     ];
 
-    extract_test(infos, expected_variables, expected_types);
+    extract_test(infos, expected_variables, expected_types, Vec::new());
 }
 
 #[test]
@@ -294,7 +306,7 @@ fn extract_enum() {
             .build(),
     ];
 
-    let expected_variables = vec![GlobalVariable::new(
+    let expected_variables = vec![GlobalVariable::new_variable(
         Some(Address::new(Location::new(16428))),
         String::from("ab"),
         TypeEntryId::new(Offset::new(45)),
@@ -323,7 +335,7 @@ fn extract_enum() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(129)), String::from("int"), 4),
     ];
 
-    extract_test(infos, expected_variables, expected_types);
+    extract_test(infos, expected_variables, expected_types, Vec::new());
 }
 
 #[test]
@@ -376,7 +388,7 @@ fn extract_anonymous_enum() {
             .build(),
     ];
 
-    let expected_variables = vec![GlobalVariable::new(
+    let expected_variables = vec![GlobalVariable::new_variable(
         Some(Address::new(Location::new(16428))),
         String::from("ab"),
         TypeEntryId::new(Offset::new(45)),
@@ -405,7 +417,7 @@ fn extract_anonymous_enum() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(126)), String::from("int"), 4),
     ];
 
-    extract_test(infos, expected_variables, expected_types);
+    extract_test(infos, expected_variables, expected_types, Vec::new());
 }
 
 #[test]
@@ -474,7 +486,7 @@ fn extract_structure() {
             .build(),
     ];
 
-    let expected_variables = vec![GlobalVariable::new(
+    let expected_variables = vec![GlobalVariable::new_variable(
         Some(Address::new(Location::new(16432))),
         String::from("hoge"),
         TypeEntryId::new(Offset::new(45)),
@@ -511,7 +523,7 @@ fn extract_structure() {
         ),
     ];
 
-    extract_test(infos, expected_variables, expected_types);
+    extract_test(infos, expected_variables, expected_types, Vec::new());
 }
 
 #[test]
@@ -564,7 +576,7 @@ fn extract_union() {
             .build(),
     ];
 
-    let expected_variables = vec![GlobalVariable::new(
+    let expected_variables = vec![GlobalVariable::new_variable(
         Some(Address::new(Location::new(16428))),
         String::from("book"),
         TypeEntryId::new(Offset::new(45)),
@@ -590,7 +602,7 @@ fn extract_union() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(90)), String::from("int"), 4),
     ];
 
-    extract_test(infos, expected_variables, expected_types);
+    extract_test(infos, expected_variables, expected_types, Vec::new());
 }
 
 #[test]
@@ -662,12 +674,12 @@ fn extract_anonymous_union_structure() {
     ];
 
     let expected_variables = vec![
-        GlobalVariable::new(
+        GlobalVariable::new_variable(
             Some(Address::new(Location::new(16428))),
             String::from("a"),
             TypeEntryId::new(Offset::new(45)),
         ),
-        GlobalVariable::new(
+        GlobalVariable::new_variable(
             Some(Address::new(Location::new(16432))),
             String::from("ab"),
             TypeEntryId::new(Offset::new(93)),
@@ -704,7 +716,7 @@ fn extract_anonymous_union_structure() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(123)), String::from("char"), 1),
     ];
 
-    extract_test(infos, expected_variables, expected_types);
+    extract_test(infos, expected_variables, expected_types, Vec::new());
 }
 
 #[test]
@@ -780,7 +792,7 @@ fn extract_function_pointer() {
             .build(),
     ];
 
-    let expected_variables = vec![GlobalVariable::new(
+    let expected_variables = vec![GlobalVariable::new_variable(
         Some(Address::new(Location::new(16424))),
         String::from("sub2"),
         TypeEntryId::new(Offset::new(101)),
@@ -803,7 +815,7 @@ fn extract_function_pointer() {
         ),
     ];
 
-    extract_test(infos, expected_variables, expected_types);
+    extract_test(infos, expected_variables, expected_types, Vec::new());
 }
 
 #[test]
@@ -923,7 +935,7 @@ fn extract_complex_structure() {
             .build(),
     ];
 
-    let expected_variables = vec![GlobalVariable::new(
+    let expected_variables = vec![GlobalVariable::new_variable(
         Some(Address::new(Location::new(16480))),
         String::from("hoge"),
         TypeEntryId::new(Offset::new(184)),
@@ -990,5 +1002,72 @@ fn extract_complex_structure() {
         ),
     ];
 
-    extract_test(infos, expected_variables, expected_types);
+    extract_test(infos, expected_variables, expected_types, Vec::new());
+}
+
+#[test]
+fn extract_extern() {
+    let infos = vec![
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(45))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("c")
+            .type_offset(Offset::new(55))
+            .declaration(true)
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(55))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(62))
+            .tag(DwarfTag::DW_TAG_unimplemented)
+            .name("main")
+            .type_offset(Offset::new(55))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(126))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("c")
+            .type_offset(Offset::new(136))
+            .declaration(true)
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(136))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(143))
+            .tag(DwarfTag::DW_TAG_variable)
+            .specification(Offset::new(126))
+            .location(Location::new(16428))
+            .build(),
+    ];
+
+    let expected_variables = vec![GlobalVariable::new_variable_with_spec(
+        Some(Address::new(Location::new(16428))),
+        VariableDeclarationEntryId::new(Offset::new(126)),
+    )];
+    let expected_types = vec![
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(55)), String::from("int"), 4),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(136)), String::from("int"), 4),
+    ];
+    let expected_decs = vec![
+        VariableDeclarationEntry::new(
+            VariableDeclarationEntryId::new(Offset::new(45)),
+            String::from("c"),
+            TypeEntryId::new(Offset::new(55)),
+        ),
+        VariableDeclarationEntry::new(
+            VariableDeclarationEntryId::new(Offset::new(126)),
+            String::from("c"),
+            TypeEntryId::new(Offset::new(136)),
+        ),
+    ];
+
+    extract_test(infos, expected_variables, expected_types, expected_decs);
 }
