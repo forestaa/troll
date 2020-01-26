@@ -835,178 +835,6 @@ fn from_global_variable_complex_structure() {
                 .build(),
         ])
         .build();
-    // let expected_view = GlobalVariableView::new(
-    //     String::from("hoge"),
-    //     Some(Address::new(Location::new(16480))),
-    //     48,
-    //     TypeView::new_array_type_view(TypeView::new_structure_type_view(Some("hoge")), Some(1)),
-    //     vec![
-    //         GlobalVariableView::new(
-    //             String::from("0"),
-    //             Some(Address::new(Location::new(16480))),
-    //             24,
-    //             TypeView::new_structure_type_view(Some("hoge")),
-    //             vec![
-    //                 GlobalVariableView::new(
-    //                     String::from("hoge"),
-    //                     Some(Address::new(Location::new(16480))),
-    //                     8,
-    //                     TypeView::new_pointer_type_view(TypeView::new_base_type_view("int")),
-    //                     vec![],
-    //                 ),
-    //                 GlobalVariableView::new(
-    //                     String::from("array"),
-    //                     Some(Address::new(Location::new(16488))),
-    //                     8,
-    //                     TypeView::new_array_type_view(TypeView::new_base_type_view("int"), Some(1)),
-    //                     vec![
-    //                         GlobalVariableView::new(
-    //                             String::from("0"),
-    //                             Some(Address::new(Location::new(16488))),
-    //                             4,
-    //                             TypeView::new_base_type_view("int"),
-    //                             vec![],
-    //                         ),
-    //                         GlobalVariableView::new(
-    //                             String::from("1"),
-    //                             Some(Address::new(Location::new(16492))),
-    //                             4,
-    //                             TypeView::new_base_type_view("int"),
-    //                             vec![],
-    //                         ),
-    //                     ],
-    //                 ),
-    //                 GlobalVariableView::new(
-    //                     String::from("student"),
-    //                     Some(Address::new(Location::new(16496))),
-    //                     4,
-    //                     TypeView::new_structure_type_view(Some("student")),
-    //                     vec![GlobalVariableView::new(
-    //                         String::from("name"),
-    //                         Some(Address::new(Location::new(16496))),
-    //                         4,
-    //                         TypeView::new_array_type_view(
-    //                             TypeView::new_base_type_view("char"),
-    //                             Some(3),
-    //                         ),
-    //                         vec![
-    //                             GlobalVariableView::new(
-    //                                 String::from("0"),
-    //                                 Some(Address::new(Location::new(16496))),
-    //                                 1,
-    //                                 TypeView::new_base_type_view("char"),
-    //                                 vec![],
-    //                             ),
-    //                             GlobalVariableView::new(
-    //                                 String::from("1"),
-    //                                 Some(Address::new(Location::new(16497))),
-    //                                 1,
-    //                                 TypeView::new_base_type_view("char"),
-    //                                 vec![],
-    //                             ),
-    //                             GlobalVariableView::new(
-    //                                 String::from("2"),
-    //                                 Some(Address::new(Location::new(16498))),
-    //                                 1,
-    //                                 TypeView::new_base_type_view("char"),
-    //                                 vec![],
-    //                             ),
-    //                             GlobalVariableView::new(
-    //                                 String::from("3"),
-    //                                 Some(Address::new(Location::new(16499))),
-    //                                 1,
-    //                                 TypeView::new_base_type_view("char"),
-    //                                 vec![],
-    //                             ),
-    //                         ],
-    //                     )],
-    //                 ),
-    //             ],
-    //         ),
-    //         GlobalVariableView::new(
-    //             String::from("1"),
-    //             Some(Address::new(Location::new(16504))),
-    //             24,
-    //             TypeView::new_structure_type_view(Some("hoge")),
-    //             vec![
-    //                 GlobalVariableView::new(
-    //                     String::from("hoge"),
-    //                     Some(Address::new(Location::new(16504))),
-    //                     8,
-    //                     TypeView::new_pointer_type_view(TypeView::new_base_type_view("int")),
-    //                     vec![],
-    //                 ),
-    //                 GlobalVariableView::new(
-    //                     String::from("array"),
-    //                     Some(Address::new(Location::new(16512))),
-    //                     8,
-    //                     TypeView::new_array_type_view(TypeView::new_base_type_view("int"), Some(1)),
-    //                     vec![
-    //                         GlobalVariableView::new(
-    //                             String::from("0"),
-    //                             Some(Address::new(Location::new(16512))),
-    //                             4,
-    //                             TypeView::new_base_type_view("int"),
-    //                             vec![],
-    //                         ),
-    //                         GlobalVariableView::new(
-    //                             String::from("1"),
-    //                             Some(Address::new(Location::new(16516))),
-    //                             4,
-    //                             TypeView::new_base_type_view("int"),
-    //                             vec![],
-    //                         ),
-    //                     ],
-    //                 ),
-    //                 GlobalVariableView::new(
-    //                     String::from("student"),
-    //                     Some(Address::new(Location::new(16520))),
-    //                     4,
-    //                     TypeView::new_structure_type_view(Some("student")),
-    //                     vec![GlobalVariableView::new(
-    //                         String::from("name"),
-    //                         Some(Address::new(Location::new(16520))),
-    //                         4,
-    //                         TypeView::new_array_type_view(
-    //                             TypeView::new_base_type_view("char"),
-    //                             Some(3),
-    //                         ),
-    //                         vec![
-    //                             GlobalVariableView::new(
-    //                                 String::from("0"),
-    //                                 Some(Address::new(Location::new(16520))),
-    //                                 1,
-    //                                 TypeView::new_base_type_view("char"),
-    //                                 vec![],
-    //                             ),
-    //                             GlobalVariableView::new(
-    //                                 String::from("1"),
-    //                                 Some(Address::new(Location::new(16521))),
-    //                                 1,
-    //                                 TypeView::new_base_type_view("char"),
-    //                                 vec![],
-    //                             ),
-    //                             GlobalVariableView::new(
-    //                                 String::from("2"),
-    //                                 Some(Address::new(Location::new(16522))),
-    //                                 1,
-    //                                 TypeView::new_base_type_view("char"),
-    //                                 vec![],
-    //                             ),
-    //                             GlobalVariableView::new(
-    //                                 String::from("3"),
-    //                                 Some(Address::new(Location::new(16523))),
-    //                                 1,
-    //                                 TypeView::new_base_type_view("char"),
-    //                                 vec![],
-    //                             ),
-    //                         ],
-    //                     )],
-    //                 ),
-    //             ],
-    //         ),
-    //     ],
-    // );
 
     from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
@@ -1044,4 +872,32 @@ fn from_global_variable_extern() {
         .build();
 
     from_global_variable_test(defined_types, variable_decs, global_variable, expected_view);
+}
+
+#[test]
+fn from_global_variable_volatile() {
+    let defined_types = vec![
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(65)), String::from("int"), 4),
+        TypeEntry::new_volatile_type_entry(
+            TypeEntryId::new(Offset::new(72)),
+            TypeEntryId::new(Offset::new(65)),
+        ),
+    ];
+
+    let global_variable = GlobalVariable::new_variable(
+        Some(Address::new(Location::new(16428))),
+        String::from("c"),
+        TypeEntryId::new(Offset::new(72)),
+    );
+
+    let expected_view = GlobalVariableViewBuilder::new()
+        .name("c")
+        .address(Some(Address::new(Location::new(16428))))
+        .size(4)
+        .type_view(TypeView::new_volatile_type_view(
+            TypeView::new_base_type_view("int"),
+        ))
+        .build();
+
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }

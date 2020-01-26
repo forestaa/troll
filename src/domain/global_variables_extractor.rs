@@ -43,6 +43,8 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
                 }
                 DwarfTag::DW_TAG_typedef => Self::extract_typedef(&entry)
                     .map(|type_entry| self.type_entry_repository.save(type_entry)),
+                DwarfTag::DW_TAG_volatile_type => Self::extract_volatile_type(&entry)
+                    .map(|type_entry| self.type_entry_repository.save(type_entry)),
                 DwarfTag::DW_TAG_const_type => Self::extract_const_type(&entry)
                     .map(|type_entry| self.type_entry_repository.save(type_entry)),
                 DwarfTag::DW_TAG_pointer_type => Self::extract_pointer_type(&entry)
@@ -129,6 +131,16 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
             None => Err("typedef entry should have type"),
         }?;
         Ok(TypeEntry::new_typedef_entry(id, name, type_ref))
+    }
+
+    fn extract_volatile_type(entry: &DwarfInfo) -> Result<TypeEntry, String> {
+        let id = TypeEntryId::new(entry.offset());
+        let type_ref = match entry.type_offset() {
+            Some(type_ref) => Ok(TypeEntryId::new(type_ref)),
+            None => Err("volatile_type entry should have type"),
+        }?;
+
+        Ok(TypeEntry::new_volatile_type_entry(id, type_ref))
     }
 
     fn extract_const_type(entry: &DwarfInfo) -> Result<TypeEntry, String> {

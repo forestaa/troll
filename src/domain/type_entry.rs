@@ -28,6 +28,9 @@ pub enum TypeEntryKind {
         name: String,
         type_ref: TypeEntryId,
     },
+    VolatileType {
+        type_ref: TypeEntryId,
+    },
     ConstType {
         type_ref: TypeEntryId,
     },
@@ -112,6 +115,11 @@ pub struct TypeEntry {
 impl TypeEntry {
     pub fn new_typedef_entry(id: TypeEntryId, name: String, type_ref: TypeEntryId) -> TypeEntry {
         let kind = TypeEntryKind::TypeDef { name, type_ref };
+        TypeEntry { id, kind }
+    }
+
+    pub fn new_volatile_type_entry(id: TypeEntryId, type_ref: TypeEntryId) -> TypeEntry {
+        let kind = TypeEntryKind::VolatileType { type_ref };
         TypeEntry { id, kind }
     }
 

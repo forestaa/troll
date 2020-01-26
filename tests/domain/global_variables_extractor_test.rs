@@ -1075,3 +1075,49 @@ fn extract_extern() {
 
     extract_test(infos, expected_variables, expected_types, expected_decs);
 }
+
+#[test]
+fn extract_volatile() {
+    let infos = vec![
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(45))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("c")
+            .type_offset(Offset::new(72))
+            .location(Location::new(16428))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(65))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(72))
+            .tag(DwarfTag::DW_TAG_volatile_type)
+            .type_offset(Offset::new(65))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(77))
+            .tag(DwarfTag::DW_TAG_unimplemented)
+            .name("main")
+            .type_offset(Offset::new(65))
+            .build(),
+    ];
+
+    let expected_variables = vec![GlobalVariable::new_variable(
+        Some(Address::new(Location::new(16428))),
+        String::from("c"),
+        TypeEntryId::new(Offset::new(72)),
+    )];
+
+    let expected_types = vec![
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(65)), String::from("int"), 4),
+        TypeEntry::new_volatile_type_entry(
+            TypeEntryId::new(Offset::new(72)),
+            TypeEntryId::new(Offset::new(65)),
+        ),
+    ];
+
+    extract_test(infos, expected_variables, expected_types, Vec::new());
+}
