@@ -1,10 +1,11 @@
 extern crate troll;
 
-use troll::domain::global_variable::{Address, GlobalVariable};
+use troll::domain::global_variable::*;
 use troll::domain::global_variable_view::*;
 use troll::domain::global_variable_view_factory::*;
 use troll::domain::type_entry::*;
 use troll::domain::type_entry_repository::TypeEntryRepository;
+use troll::domain::variable_declaration_repository::VariableDeclarationRepository;
 use troll::library::dwarf::{Location, Offset};
 
 fn init() {
@@ -13,14 +14,21 @@ fn init() {
 
 fn from_global_variable_test(
     defined_types: Vec<TypeEntry>,
+    variable_decs: Vec<VariableDeclarationEntry>,
     global_variable: GlobalVariable,
     expected_view: GlobalVariableView,
 ) {
-    from_global_variables_test(defined_types, vec![global_variable], vec![expected_view]);
+    from_global_variables_test(
+        defined_types,
+        variable_decs,
+        vec![global_variable],
+        vec![expected_view],
+    );
 }
 
 fn from_global_variables_test(
     defined_types: Vec<TypeEntry>,
+    variable_decs: Vec<VariableDeclarationEntry>,
     global_variables: Vec<GlobalVariable>,
     expected_views: Vec<GlobalVariableView>,
 ) {
@@ -30,7 +38,13 @@ fn from_global_variables_test(
     for defined_type in defined_types {
         type_entry_repository.save(defined_type);
     }
-    let factory = GlobalVariableViewFactory::new(&type_entry_repository);
+    let mut variable_declaration_repository = VariableDeclarationRepository::new();
+    for variable_dec in variable_decs {
+        variable_declaration_repository.save(variable_dec);
+    }
+
+    let factory =
+        GlobalVariableViewFactory::new(&type_entry_repository, &variable_declaration_repository);
 
     let got_views: Vec<GlobalVariableView> = global_variables
         .into_iter()
@@ -63,7 +77,7 @@ fn from_global_variable_const() {
         vec![],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -91,7 +105,7 @@ fn from_global_variable_pointer() {
         vec![],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -124,7 +138,7 @@ fn from_global_variable_typedef() {
         vec![],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -179,7 +193,7 @@ fn from_global_variable_array() {
         ],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -235,7 +249,7 @@ fn from_global_variable_enum() {
         vec![],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -291,7 +305,7 @@ fn from_global_variable_anonymous_enum() {
         vec![],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -364,7 +378,7 @@ fn from_global_variable_structure() {
         ],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -418,7 +432,7 @@ fn from_global_variable_union() {
         ],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -504,7 +518,7 @@ fn from_global_variable_anonymous_union_structure() {
         ),
     ];
 
-    from_global_variables_test(defined_types, global_variables, expected_views);
+    from_global_variables_test(defined_types, Vec::new(), global_variables, expected_views);
 }
 
 #[test]
@@ -541,7 +555,7 @@ fn from_global_variable_function_pointer() {
         vec![],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
 }
 
 #[test]
@@ -787,5 +801,41 @@ fn from_global_variable_complex_structure() {
         ],
     );
 
-    from_global_variable_test(defined_types, global_variable, expected_view);
+    from_global_variable_test(defined_types, Vec::new(), global_variable, expected_view);
+}
+
+#[test]
+fn from_global_variable_extern() {
+    let defined_types = vec![
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(55)), String::from("int"), 4),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(136)), String::from("int"), 4),
+    ];
+
+    let variable_decs = vec![
+        VariableDeclarationEntry::new(
+            VariableDeclarationEntryId::new(Offset::new(45)),
+            String::from("c"),
+            TypeEntryId::new(Offset::new(55)),
+        ),
+        VariableDeclarationEntry::new(
+            VariableDeclarationEntryId::new(Offset::new(126)),
+            String::from("c"),
+            TypeEntryId::new(Offset::new(136)),
+        ),
+    ];
+
+    let global_variable = GlobalVariable::new_variable_with_spec(
+        Some(Address::new(Location::new(16428))),
+        VariableDeclarationEntryId::new(Offset::new(126)),
+    );
+
+    let expected_view = GlobalVariableView::new(
+        String::from("c"),
+        Some(Address::new(Location::new(16428))),
+        4,
+        TypeView::new_base_type_view("int"),
+        vec![],
+    );
+
+    from_global_variable_test(defined_types, variable_decs, global_variable, expected_view);
 }

@@ -2,16 +2,22 @@ use super::global_variable::{Address, GlobalVariable};
 use super::global_variable_view::*;
 use super::type_entry::*;
 use super::type_entry_repository::TypeEntryRepository;
+use super::variable_declaration_repository::VariableDeclarationRepository;
 use log::warn;
 
-pub struct GlobalVariableViewFactory<'repo> {
-    type_entry_repository: &'repo TypeEntryRepository,
+pub struct GlobalVariableViewFactory<'type_repo, 'dec_repo> {
+    type_entry_repository: &'type_repo TypeEntryRepository,
+    variable_declaration_repository: &'dec_repo VariableDeclarationRepository,
 }
 
-impl<'repo> GlobalVariableViewFactory<'repo> {
-    pub fn new(type_entry_repository: &TypeEntryRepository) -> GlobalVariableViewFactory {
-        GlobalVariableViewFactory {
+impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
+    pub fn new(
+        type_entry_repository: &'type_repo TypeEntryRepository,
+        variable_declaration_repository: &'dec_repo VariableDeclarationRepository,
+    ) -> Self {
+        Self {
             type_entry_repository,
+            variable_declaration_repository,
         }
     }
 
