@@ -647,7 +647,7 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
                     0.to_string(),
                     element_type_ref,
                 ) {
-                    size += element_view.size();
+                    size += element_view.size;
                     elements.push(element_view);
                 }
                 (elements, size)
@@ -666,7 +666,7 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
                                 n.to_string(),
                                 element_type_ref.clone(),
                             ))?;
-                        size += element_view.size();
+                        size += element_view.size;
                         Some(element_view)
                     })
                     .collect();

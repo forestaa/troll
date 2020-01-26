@@ -3,52 +3,16 @@ use super::type_entry::EnumeratorEntry;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct GlobalVariableView {
-    name: String,
-    address: Option<Address>,
-    size: usize,
-    bit_size: Option<usize>,
-    bit_offset: Option<usize>,
-    type_view: TypeView,
-    children: Vec<GlobalVariableView>,
+    pub name: String,
+    pub address: Option<Address>,
+    pub size: usize,
+    pub bit_size: Option<usize>,
+    pub bit_offset: Option<usize>,
+    pub type_view: TypeView,
+    pub children: Vec<GlobalVariableView>,
 }
 
 impl GlobalVariableView {
-    // pub fn new(
-    //     name: String,
-    //     address: Option<Address>,
-    //     size: usize,
-    //     type_view: TypeView,
-    //     children: Vec<GlobalVariableView>,
-    // ) -> Self {
-    //     GlobalVariableView {
-    //         name,
-    //         address,
-    //         size,
-    //         type_view,
-    //         children,
-    //     }
-    // }
-
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-
-    pub fn size(&self) -> usize {
-        self.size
-    }
-
-    pub fn address(&self) -> Option<&Address> {
-        self.address.as_ref()
-    }
-
-    pub fn type_view(&self) -> &TypeView {
-        &self.type_view
-    }
-
-    pub fn children(self) -> Vec<Self> {
-        self.children
-    }
-
     pub fn set_type_view(&mut self, type_view: TypeView) {
         self.map_type_view(|_| type_view);
     }
