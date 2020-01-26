@@ -19,16 +19,28 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
         &self,
         global_variable: GlobalVariable,
     ) -> Option<GlobalVariableView> {
-        match self
-            .type_entry_repository
-            .find_by_id(global_variable.type_ref())
-        {
+        match global_variable {
+            GlobalVariable::HasSpec { .. } => unimplemented!(),
+            GlobalVariable::NoSpec {
+                address,
+                name,
+                type_ref,
+            } => self.from_global_variable_no_spec(address, name, type_ref),
+        }
+    }
+
+    fn from_global_variable_no_spec(
+        &self,
+        address: Option<Address>,
+        variable_name: String,
+        type_ref: TypeEntryId,
+    ) -> Option<GlobalVariableView> {
+        match self.type_entry_repository.find_by_id(&type_ref) {
             None => {
-                let offset: usize = global_variable.type_ref().clone().into();
+                let offset: usize = type_ref.clone().into();
                 warn!(
                     "global variable refers unknown offset: variable: {}, refered offset {:#x}",
-                    global_variable.name(),
-                    offset
+                    variable_name, offset
                 );
                 None
             }
@@ -37,21 +49,23 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     name: type_name,
                     type_ref,
                 } => self.from_global_variable_typedef(
-                    global_variable,
+                    address,
+                    variable_name,
                     type_name.clone(),
                     type_ref.clone(),
                 ),
                 TypeEntryKind::ConstType { type_ref } => {
-                    self.from_global_variable_const_type(global_variable, type_ref.clone())
+                    self.from_global_variable_const_type(address, variable_name, type_ref.clone())
                 }
                 TypeEntryKind::PointerType { size, type_ref } => {
-                    self.from_global_variable_pointer_type(global_variable, *size, type_ref)
+                    self.from_global_variable_pointer_type(address, variable_name, *size, type_ref)
                 }
                 TypeEntryKind::BaseType {
                     name: type_name,
                     size,
                 } => Some(self.from_global_variable_base_type(
-                    global_variable,
+                    address,
+                    variable_name,
                     type_name.clone(),
                     *size,
                 )),
@@ -60,7 +74,8 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     type_ref,
                     enumerators,
                 } => self.from_global_variable_enum_type(
-                    global_variable,
+                    address,
+                    variable_name,
                     type_name.clone(),
                     type_ref.clone(),
                     enumerators,
@@ -70,7 +85,8 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     size,
                     members,
                 } => Some(self.from_global_variable_structure_type(
-                    global_variable,
+                    address,
+                    variable_name,
                     type_name.clone(),
                     *size,
                     members,
@@ -80,7 +96,8 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     size,
                     members,
                 } => Some(self.from_global_variable_union_type(
-                    global_variable,
+                    address,
+                    variable_name,
                     type_name.clone(),
                     *size,
                     members,
@@ -89,15 +106,16 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                     element_type_ref,
                     upper_bound,
                 } => self.from_global_variable_array_type(
-                    global_variable,
+                    address,
+                    variable_name,
                     element_type_ref,
                     *upper_bound,
                 ),
                 TypeEntryKind::FunctionType { .. } => {
-                    let offset: usize = global_variable.type_ref().clone().into();
+                    let offset: usize = type_ref.clone().into();
                     warn!(
                         "global variable should not refer subroutine_type: variable: {}, refered offset {:#x}",
-                        global_variable.name(),
+                        variable_name,
                        offset
                     );
                     None
@@ -108,14 +126,13 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
 
     fn from_global_variable_typedef(
         &self,
-        global_variable: GlobalVariable,
+        address: Option<Address>,
+        variable_name: String,
         type_name: String,
         type_ref: TypeEntryId,
     ) -> Option<GlobalVariableView> {
-        let global_variable =
-            GlobalVariable::new(global_variable.address(), global_variable.name(), type_ref);
-
-        let mut global_variable_view = self.from_global_variable(global_variable)?;
+        let mut global_variable_view =
+            self.from_global_variable_no_spec(address, variable_name, type_ref)?;
         global_variable_view
             .map_type_view(|type_view| TypeView::new_typedef_type_view(type_name, type_view));
         Some(global_variable_view)
@@ -123,27 +140,27 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
 
     fn from_global_variable_const_type(
         &self,
-        global_variable: GlobalVariable,
+        address: Option<Address>,
+        variable_name: String,
         type_ref: TypeEntryId,
     ) -> Option<GlobalVariableView> {
-        let global_variable =
-            GlobalVariable::new(global_variable.address(), global_variable.name(), type_ref);
-
-        let mut global_variable_view = self.from_global_variable(global_variable)?;
+        let mut global_variable_view =
+            self.from_global_variable_no_spec(address, variable_name, type_ref)?;
         global_variable_view.map_type_view(|type_view| TypeView::new_const_type_view(type_view));
         Some(global_variable_view)
     }
 
     fn from_global_variable_pointer_type(
         &self,
-        global_variable: GlobalVariable,
+        address: Option<Address>,
+        variable_name: String,
         size: usize,
         type_ref: &Option<TypeEntryId>,
     ) -> Option<GlobalVariableView> {
         match type_ref {
             None => Some(GlobalVariableView::new(
-                global_variable.name(),
-                global_variable.address(),
+                variable_name,
+                address,
                 size,
                 TypeView::new_void_pointer_type_view(),
                 Vec::new(),
@@ -151,8 +168,8 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
             Some(type_ref) => {
                 let type_view = self.type_view_from_type_entry(type_ref)?;
                 Some(GlobalVariableView::new(
-                    global_variable.name(),
-                    global_variable.address(),
+                    variable_name,
+                    address,
                     size,
                     TypeView::new_pointer_type_view(type_view),
                     Vec::new(),
@@ -163,13 +180,14 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
 
     fn from_global_variable_base_type(
         &self,
-        global_variable: GlobalVariable,
+        address: Option<Address>,
+        variable_name: String,
         type_name: String,
         size: usize,
     ) -> GlobalVariableView {
         GlobalVariableView::new(
-            global_variable.name(),
-            global_variable.address(),
+            variable_name,
+            address,
             size,
             TypeView::new_base_type_view(type_name),
             Vec::new(),
@@ -178,15 +196,14 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
 
     fn from_global_variable_enum_type(
         &self,
-        global_variable: GlobalVariable,
+        address: Option<Address>,
+        variable_name: String,
         type_name: Option<String>,
         type_ref: TypeEntryId,
         enumerators: &Vec<EnumeratorEntry>,
     ) -> Option<GlobalVariableView> {
-        let global_variable =
-            GlobalVariable::new(global_variable.address(), global_variable.name(), type_ref);
-
-        let mut global_variable_view = self.from_global_variable(global_variable)?;
+        let mut global_variable_view =
+            self.from_global_variable_no_spec(address, variable_name, type_ref)?;
 
         let enumerators = enumerators.iter().map(Enumerator::from).collect();
         global_variable_view.map_type_view(|type_view| {
@@ -198,20 +215,20 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
 
     fn from_global_variable_structure_type(
         &self,
-        global_variable: GlobalVariable,
+        address: Option<Address>,
+        variable_name: String,
         type_name: Option<String>,
         size: usize,
         members: &Vec<StructureTypeMemberEntry>,
     ) -> GlobalVariableView {
-        let base_address = global_variable.address();
         let members: Vec<GlobalVariableView> = members
             .iter()
-            .flat_map(|member| self.from_structure_type_member_entry(member, &base_address))
+            .flat_map(|member| self.from_structure_type_member_entry(member, &address))
             .collect();
 
         GlobalVariableView::new(
-            global_variable.name(),
-            base_address,
+            variable_name,
+            address,
             size,
             TypeView::new_structure_type_view(type_name),
             members,
@@ -220,7 +237,8 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
 
     fn from_global_variable_union_type(
         &self,
-        global_variable: GlobalVariable,
+        address: Option<Address>,
+        variable_name: String,
         type_name: Option<String>,
         size: usize,
         members: &Vec<UnionTypeMemberEntry>,
@@ -228,17 +246,17 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
         let members: Vec<GlobalVariableView> = members
             .iter()
             .flat_map(|member| {
-                self.from_global_variable(GlobalVariable::new(
-                    global_variable.address(),
+                self.from_global_variable_no_spec(
+                    address.clone(),
                     member.name.clone(),
                     member.type_ref.clone(),
-                ))
+                )
             })
             .collect();
 
         GlobalVariableView::new(
-            global_variable.name(),
-            global_variable.address(),
+            variable_name,
+            address,
             size,
             TypeView::new_union_type_view(type_name),
             members,
@@ -247,21 +265,16 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
 
     fn from_global_variable_array_type(
         &self,
-        global_variable: GlobalVariable,
+        address: Option<Address>,
+        variable_name: String,
         element_type_ref: &TypeEntryId,
         upper_bound: Option<usize>,
     ) -> Option<GlobalVariableView> {
         let type_view = self.type_view_from_type_entry(element_type_ref)?;
-        let address = global_variable.address();
-        let (elements, size) = self.array_elements(
-            global_variable.name(),
-            &address,
-            upper_bound,
-            element_type_ref.clone(),
-        );
+        let (elements, size) = self.array_elements(&address, upper_bound, element_type_ref.clone());
 
         Some(GlobalVariableView::new(
-            global_variable.name(),
+            variable_name,
             address,
             size,
             TypeView::new_array_type_view(type_view, upper_bound),
@@ -524,7 +537,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
         let members: Vec<GlobalVariableView> = members
             .iter()
             .flat_map(|member| {
-                self.from_global_variable(GlobalVariable::new(
+                self.from_global_variable(GlobalVariable::new_variable(
                     address.clone(),
                     member.name.clone(),
                     member.type_ref.clone(),
@@ -554,12 +567,7 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
         }
 
         let type_view = self.type_view_from_type_entry(element_type_ref)?;
-        let (elements, size) = self.array_elements(
-            member.name.clone(),
-            &address,
-            upper_bound,
-            element_type_ref.clone(),
-        );
+        let (elements, size) = self.array_elements(&address, upper_bound, element_type_ref.clone());
 
         Some(GlobalVariableView::new(
             member.name.clone(),
@@ -572,7 +580,6 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
 
     fn array_elements(
         &self,
-        name: String,
         address: &Option<Address>,
         upper_bound: Option<usize>,
         element_type_ref: TypeEntryId,
@@ -581,11 +588,11 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
             None => {
                 let mut elements = vec![];
                 let mut size = 0;
-                if let Some(element_view) = self.from_global_variable(GlobalVariable::new(
+                if let Some(element_view) = self.from_global_variable_no_spec(
                     address.clone(),
-                    name,
+                    0.to_string(),
                     element_type_ref,
-                )) {
+                ) {
                     size += element_view.size();
                     elements.push(element_view);
                 }
@@ -599,11 +606,12 @@ impl<'repo> GlobalVariableViewFactory<'repo> {
                         if let Some(ref mut addr) = address {
                             addr.add(size);
                         }
-                        let element_view = self.from_global_variable(GlobalVariable::new(
-                            address,
-                            n.to_string(),
-                            element_type_ref.clone(),
-                        ))?;
+                        let element_view =
+                            self.from_global_variable(GlobalVariable::new_variable(
+                                address,
+                                n.to_string(),
+                                element_type_ref.clone(),
+                            ))?;
                         size += element_view.size();
                         Some(element_view)
                     })
