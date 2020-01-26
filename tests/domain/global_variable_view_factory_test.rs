@@ -49,7 +49,7 @@ fn from_global_variable_const() {
         ),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(8196))),
         String::from("c"),
         TypeEntryId::new(Offset::new(72)),
@@ -77,7 +77,7 @@ fn from_global_variable_pointer() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(71)), String::from("int"), 4),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16432))),
         String::from("p"),
         TypeEntryId::new(Offset::new(65)),
@@ -110,7 +110,7 @@ fn from_global_variable_typedef() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(114)), String::from("int"), 4),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16428))),
         String::from("a"),
         TypeEntryId::new(Offset::new(45)),
@@ -143,7 +143,7 @@ fn from_global_variable_array() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(68)), String::from("int"), 4),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16432))),
         String::from("hoges"),
         TypeEntryId::new(Offset::new(45)),
@@ -208,7 +208,7 @@ fn from_global_variable_enum() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(129)), String::from("int"), 4),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16428))),
         String::from("ab"),
         TypeEntryId::new(Offset::new(45)),
@@ -264,7 +264,7 @@ fn from_global_variable_anonymous_enum() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(126)), String::from("int"), 4),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16428))),
         String::from("ab"),
         TypeEntryId::new(Offset::new(45)),
@@ -328,7 +328,7 @@ fn from_global_variable_structure() {
         ),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16432))),
         String::from("hoge"),
         TypeEntryId::new(Offset::new(45)),
@@ -389,7 +389,7 @@ fn from_global_variable_union() {
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(90)), String::from("int"), 4),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16428))),
         String::from("book"),
         TypeEntryId::new(Offset::new(45)),
@@ -454,12 +454,12 @@ fn from_global_variable_anonymous_union_structure() {
     ];
 
     let global_variables = vec![
-        GlobalVariable::new(
+        GlobalVariable::new_variable(
             Some(Address::new(Location::new(16428))),
             String::from("a"),
             TypeEntryId::new(Offset::new(45)),
         ),
-        GlobalVariable::new(
+        GlobalVariable::new_variable(
             Some(Address::new(Location::new(16432))),
             String::from("ab"),
             TypeEntryId::new(Offset::new(93)),
@@ -527,7 +527,7 @@ fn from_global_variable_function_pointer() {
         ),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16424))),
         String::from("sub2"),
         TypeEntryId::new(Offset::new(101)),
@@ -608,7 +608,7 @@ fn from_global_variable_complex_structure() {
         ),
     ];
 
-    let global_variable = GlobalVariable::new(
+    let global_variable = GlobalVariable::new_variable(
         Some(Address::new(Location::new(16480))),
         String::from("hoge"),
         TypeEntryId::new(Offset::new(184)),

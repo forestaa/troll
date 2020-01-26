@@ -70,7 +70,7 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
             Some(type_ref) => Ok(TypeEntryId::new(type_ref)),
             None => Err("variable entry should have type"),
         }?;
-        Ok(GlobalVariable::new(address, name, type_ref))
+        Ok(GlobalVariable::new_variable(address, name, type_ref))
     }
 
     fn extract_typedef(entry: &DwarfInfo) -> Result<TypeEntry, String> {

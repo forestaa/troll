@@ -22,31 +22,32 @@ impl Into<usize> for Address {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct GlobalVariable {
-    address: Option<Address>,
-    name: String,
-    type_ref: TypeEntryId,
+pub enum GlobalVariable {
+    NoSpec {
+        address: Option<Address>,
+        name: String,
+        type_ref: TypeEntryId,
+    },
+    HasSpec {
+        address: Option<Address>,
+        spec: VariableDeclarationEntryId,
+    },
 }
 
 impl GlobalVariable {
-    pub fn new(address: Option<Address>, name: String, type_ref: TypeEntryId) -> Self {
-        GlobalVariable {
+    pub fn new_variable(address: Option<Address>, name: String, type_ref: TypeEntryId) -> Self {
+        Self::NoSpec {
             address,
             name,
             type_ref,
         }
     }
 
-    pub fn address(&self) -> Option<Address> {
-        self.address.clone()
-    }
-
-    pub fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    pub fn type_ref(&self) -> &TypeEntryId {
-        &self.type_ref
+    pub fn new_variable_with_spec(
+        address: Option<Address>,
+        spec: VariableDeclarationEntryId,
+    ) -> Self {
+        Self::HasSpec { address, spec }
     }
 }
 
@@ -71,27 +72,16 @@ impl Into<usize> for VariableDeclarationEntryId {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VariableDeclarationEntry {
-    id: VariableDeclarationEntryId,
-    name: String,
-    type_ref: TypeEntryId,
+    pub id: VariableDeclarationEntryId,
+    pub name: String,
+    pub type_ref: TypeEntryId,
 }
 
 impl VariableDeclarationEntry {
     pub fn new(id: VariableDeclarationEntryId, name: String, type_ref: TypeEntryId) -> Self {
         Self { id, name, type_ref }
-    }
-
-    pub fn id(&self) -> VariableDeclarationEntryId {
-        self.id.clone()
-    }
-
-    pub fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    pub fn type_ref(&self) -> &TypeEntryId {
-        &self.type_ref
     }
 }
 
