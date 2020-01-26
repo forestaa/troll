@@ -1,4 +1,4 @@
-use super::global_variable::{Address, GlobalVariable};
+use super::global_variable::*;
 use super::global_variable_view::*;
 use super::type_entry::*;
 use super::type_entry_repository::TypeEntryRepository;
@@ -26,12 +26,36 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
         global_variable: GlobalVariable,
     ) -> Option<GlobalVariableView> {
         match global_variable {
-            GlobalVariable::HasSpec { .. } => unimplemented!(),
+            GlobalVariable::HasSpec { address, spec } => {
+                self.from_global_variable_with_spec(address, spec)
+            }
             GlobalVariable::NoSpec {
                 address,
                 name,
                 type_ref,
             } => self.from_global_variable_no_spec(address, name, type_ref),
+        }
+    }
+
+    fn from_global_variable_with_spec(
+        &self,
+        address: Option<Address>,
+        spec: VariableDeclarationEntryId,
+    ) -> Option<GlobalVariableView> {
+        match self.variable_declaration_repository.find_by_id(&spec) {
+            None => {
+                let offset: usize = spec.clone().into();
+                warn!(
+                    "global variable refers unknown specification: refered specification offset: {:#x}",
+                    offset
+                );
+                None
+            }
+            Some(variable_dec) => self.from_global_variable_no_spec(
+                address,
+                variable_dec.name.clone(),
+                variable_dec.type_ref.clone(),
+            ),
         }
     }
 
