@@ -143,7 +143,7 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
 
     fn extract_pointer_type(entry: &DwarfInfo) -> Result<TypeEntry, String> {
         let id = TypeEntryId::new(entry.offset());
-        let size = match entry.size() {
+        let size = match entry.byte_size() {
             Some(size) => Ok(size),
             None => Err("pointer_type entry should have size"),
         }?;
@@ -158,7 +158,7 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
             None => Err("base_type entry should have name"),
         }?;
 
-        let size = match entry.size() {
+        let size = match entry.byte_size() {
             Some(size) => Ok(size),
             None => Err("base_type entry should have size"),
         }?;
@@ -207,7 +207,7 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
         let id = TypeEntryId::new(entry.offset());
 
         let name = entry.name();
-        let size = match entry.size() {
+        let size = match entry.byte_size() {
             Some(size) => Ok(size),
             None => Err("structure_type entry should have size"),
         }?;
@@ -240,11 +240,12 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
                     }
                 }?;
 
-                Some(StructureTypeMemberEntry {
-                    name,
-                    location,
-                    type_ref,
-                })
+                let bit_size = entry.bit_size();
+                let bit_offset = entry.bit_offset();
+
+                Some(StructureTypeMemberEntry::new(
+                    name, location, type_ref, bit_size, bit_offset,
+                ))
             })
             .collect();
         Ok(TypeEntry::new_structure_type_entry(id, name, size, members))
@@ -253,7 +254,7 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
     fn extract_union_type(entry: &DwarfInfo) -> Result<TypeEntry, String> {
         let id = TypeEntryId::new(entry.offset());
         let name = entry.name();
-        let size = match entry.size() {
+        let size = match entry.byte_size() {
             Some(size) => Ok(size),
             None => Err("structure_type entry should have size"),
         }?;

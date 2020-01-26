@@ -306,6 +306,8 @@ fn dwarf_info_structure() {
                     .name("pohe")
                     .type_offset(Offset::new(115))
                     .byte_size(4)
+                    .bit_size(1)
+                    .bit_offset(23)
                     .data_member_location(4)
                     .build(),
             ])

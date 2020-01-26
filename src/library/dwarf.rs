@@ -81,6 +81,8 @@ pub struct DwarfInfo {
     name: Option<String>,
     type_offset: Option<Offset>,
     byte_size: Option<usize>,
+    bit_size: Option<usize>,
+    bit_offset: Option<usize>,
     location: Option<Location>,
     upper_bound: Option<usize>,
     const_value: Option<usize>,
@@ -107,8 +109,16 @@ impl DwarfInfo {
         self.type_offset.clone()
     }
 
-    pub fn size(&self) -> Option<usize> {
+    pub fn byte_size(&self) -> Option<usize> {
         self.byte_size
+    }
+
+    pub fn bit_size(&self) -> Option<usize> {
+        self.bit_size
+    }
+
+    pub fn bit_offset(&self) -> Option<usize> {
+        self.bit_offset
     }
 
     pub fn location(&self) -> Option<Location> {
@@ -170,6 +180,8 @@ impl DwarfInfoIntoIterator {
                 let name = Self::get_name(dwarf, entry);
                 let type_offset = Self::get_type_offset(header, entry);
                 let byte_size = Self::get_byte_size(entry);
+                let bit_size = Self::get_bit_size(entry);
+                let bit_offset = Self::get_bit_offset(entry);
                 let location = Self::get_location(header, encoding, entry);
                 let upper_bound = Self::get_upper_bound(entry);
                 let const_value = Self::get_const_value(entry);
@@ -189,6 +201,8 @@ impl DwarfInfoIntoIterator {
                     name,
                     type_offset,
                     byte_size,
+                    bit_size,
+                    bit_offset,
                     location,
                     upper_bound,
                     const_value,
@@ -258,6 +272,34 @@ impl DwarfInfoIntoIterator {
     ) -> Option<usize> {
         entry
             .attr_value(gimli::DW_AT_byte_size)
+            .unwrap()
+            .and_then(|value| value.udata_value())
+            .map(|byte_size| byte_size as usize)
+    }
+
+    fn get_bit_size<'abbrev, 'unit>(
+        entry: &gimli::DebuggingInformationEntry<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+    ) -> Option<usize> {
+        entry
+            .attr_value(gimli::DW_AT_bit_size)
+            .unwrap()
+            .and_then(|value| value.udata_value())
+            .map(|byte_size| byte_size as usize)
+    }
+
+    fn get_bit_offset<'abbrev, 'unit>(
+        entry: &gimli::DebuggingInformationEntry<
+            'abbrev,
+            'unit,
+            gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
+        >,
+    ) -> Option<usize> {
+        entry
+            .attr_value(gimli::DW_AT_bit_offset)
             .unwrap()
             .and_then(|value| value.udata_value())
             .map(|byte_size| byte_size as usize)
@@ -461,6 +503,8 @@ pub struct DwarfInfoBuilder<OffsetP, TagP> {
     name: Option<String>,
     type_offset: Option<Offset>,
     byte_size: Option<usize>,
+    bit_size: Option<usize>,
+    bit_offset: Option<usize>,
     location: Option<Location>,
     upper_bound: Option<usize>,
     const_value: Option<usize>,
@@ -478,6 +522,8 @@ impl DwarfInfoBuilder<(), ()> {
             name: None,
             type_offset: None,
             byte_size: None,
+            bit_size: None,
+            bit_offset: None,
             location: None,
             upper_bound: None,
             const_value: None,
@@ -497,6 +543,8 @@ impl DwarfInfoBuilder<Offset, DwarfTag> {
             name: self.name,
             type_offset: self.type_offset,
             byte_size: self.byte_size,
+            bit_size: self.bit_size,
+            bit_offset: self.bit_offset,
             location: self.location,
             upper_bound: self.upper_bound,
             const_value: self.const_value,
@@ -516,6 +564,8 @@ impl<OffsetP> DwarfInfoBuilder<OffsetP, ()> {
             name: self.name,
             type_offset: self.type_offset,
             byte_size: self.byte_size,
+            bit_size: self.bit_size,
+            bit_offset: self.bit_offset,
             location: self.location,
             upper_bound: self.upper_bound,
             const_value: self.const_value,
@@ -535,6 +585,8 @@ impl<TagP> DwarfInfoBuilder<(), TagP> {
             name: self.name,
             type_offset: self.type_offset,
             byte_size: self.byte_size,
+            bit_size: self.bit_size,
+            bit_offset: self.bit_offset,
             location: self.location,
             upper_bound: self.upper_bound,
             const_value: self.const_value,
@@ -559,6 +611,16 @@ impl<OffsetP, TagP> DwarfInfoBuilder<OffsetP, TagP> {
 
     pub fn byte_size(mut self, size: usize) -> Self {
         self.byte_size = Some(size);
+        self
+    }
+
+    pub fn bit_size(mut self, size: usize) -> Self {
+        self.bit_size = Some(size);
+        self
+    }
+
+    pub fn bit_offset(mut self, offset: usize) -> Self {
+        self.bit_offset = Some(offset);
         self
     }
 

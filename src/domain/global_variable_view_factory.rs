@@ -188,22 +188,24 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
         type_ref: &Option<TypeEntryId>,
     ) -> Option<GlobalVariableView> {
         match type_ref {
-            None => Some(GlobalVariableView::new(
-                variable_name,
-                address,
-                size,
-                TypeView::new_void_pointer_type_view(),
-                Vec::new(),
-            )),
+            None => Some(
+                GlobalVariableViewBuilder::new()
+                    .name(variable_name)
+                    .address(address)
+                    .size(size)
+                    .type_view(TypeView::new_void_pointer_type_view())
+                    .build(),
+            ),
             Some(type_ref) => {
                 let type_view = self.type_view_from_type_entry(type_ref)?;
-                Some(GlobalVariableView::new(
-                    variable_name,
-                    address,
-                    size,
-                    TypeView::new_pointer_type_view(type_view),
-                    Vec::new(),
-                ))
+                Some(
+                    GlobalVariableViewBuilder::new()
+                        .name(variable_name)
+                        .address(address)
+                        .size(size)
+                        .type_view(TypeView::new_pointer_type_view(type_view))
+                        .build(),
+                )
             }
         }
     }
@@ -215,13 +217,12 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
         type_name: String,
         size: usize,
     ) -> GlobalVariableView {
-        GlobalVariableView::new(
-            variable_name,
-            address,
-            size,
-            TypeView::new_base_type_view(type_name),
-            Vec::new(),
-        )
+        GlobalVariableViewBuilder::new()
+            .name(variable_name)
+            .address(address)
+            .size(size)
+            .type_view(TypeView::new_base_type_view(type_name))
+            .build()
     }
 
     fn from_global_variable_enum_type(
@@ -256,13 +257,13 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
             .flat_map(|member| self.from_structure_type_member_entry(member, &address))
             .collect();
 
-        GlobalVariableView::new(
-            variable_name,
-            address,
-            size,
-            TypeView::new_structure_type_view(type_name),
-            members,
-        )
+        GlobalVariableViewBuilder::new()
+            .name(variable_name)
+            .address(address)
+            .size(size)
+            .type_view(TypeView::new_structure_type_view(type_name))
+            .children(members)
+            .build()
     }
 
     fn from_global_variable_union_type(
@@ -284,13 +285,13 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
             })
             .collect();
 
-        GlobalVariableView::new(
-            variable_name,
-            address,
-            size,
-            TypeView::new_union_type_view(type_name),
-            members,
-        )
+        GlobalVariableViewBuilder::new()
+            .name(variable_name)
+            .address(address)
+            .size(size)
+            .type_view(TypeView::new_union_type_view(type_name))
+            .children(members)
+            .build()
     }
 
     fn from_global_variable_array_type(
@@ -303,13 +304,15 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
         let type_view = self.type_view_from_type_entry(element_type_ref)?;
         let (elements, size) = self.array_elements(&address, upper_bound, element_type_ref.clone());
 
-        Some(GlobalVariableView::new(
-            variable_name,
-            address,
-            size,
-            TypeView::new_array_type_view(type_view, upper_bound),
-            elements,
-        ))
+        Some(
+            GlobalVariableViewBuilder::new()
+                .name(variable_name)
+                .address(address)
+                .size(size)
+                .type_view(TypeView::new_array_type_view(type_view, upper_bound))
+                .children(elements)
+                .build(),
+        )
     }
 
     fn from_structure_type_member_entry(
@@ -420,11 +423,13 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
         type_name: String,
         type_ref: TypeEntryId,
     ) -> Option<GlobalVariableView> {
-        let member = StructureTypeMemberEntry {
-            name: member.name.clone(),
-            location: member.location,
-            type_ref: type_ref,
-        };
+        let member = StructureTypeMemberEntry::new(
+            member.name.clone(),
+            member.location,
+            type_ref,
+            None,
+            None,
+        );
         let mut member_view = self.from_structure_type_member_entry(&member, base_address)?;
 
         member_view
@@ -438,11 +443,13 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
         base_address: &Option<Address>,
         type_ref: TypeEntryId,
     ) -> Option<GlobalVariableView> {
-        let member = StructureTypeMemberEntry {
-            name: member.name.clone(),
-            location: member.location,
-            type_ref: type_ref,
-        };
+        let member = StructureTypeMemberEntry::new(
+            member.name.clone(),
+            member.location,
+            type_ref,
+            None,
+            None,
+        );
         let mut member_view = self.from_structure_type_member_entry(&member, base_address)?;
 
         member_view.map_type_view(|type_view| TypeView::new_const_type_view(type_view));
@@ -462,22 +469,28 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
         }
 
         match type_ref {
-            None => Some(GlobalVariableView::new(
-                member.name.clone(),
-                address,
-                size,
-                TypeView::new_void_pointer_type_view(),
-                Vec::new(),
-            )),
+            None => Some(
+                GlobalVariableViewBuilder::new()
+                    .name(member.name.clone())
+                    .address(address)
+                    .size(size)
+                    .bit_size(member.bit_size)
+                    .bit_offset(member.bit_offset)
+                    .type_view(TypeView::new_void_pointer_type_view())
+                    .build(),
+            ),
             Some(type_ref) => {
                 let type_view = self.type_view_from_type_entry(type_ref)?;
-                Some(GlobalVariableView::new(
-                    member.name.clone(),
-                    address,
-                    size,
-                    TypeView::new_pointer_type_view(type_view),
-                    Vec::new(),
-                ))
+                Some(
+                    GlobalVariableViewBuilder::new()
+                        .name(member.name.clone())
+                        .address(address)
+                        .size(size)
+                        .bit_size(member.bit_size)
+                        .bit_offset(member.bit_offset)
+                        .type_view(TypeView::new_pointer_type_view(type_view))
+                        .build(),
+                )
             }
         }
     }
@@ -494,13 +507,14 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
             addr.add(member.location);
         }
 
-        GlobalVariableView::new(
-            member.name.clone(),
-            address,
-            size,
-            TypeView::new_base_type_view(type_name),
-            Vec::new(),
-        )
+        GlobalVariableViewBuilder::new()
+            .name(member.name.clone())
+            .address(address)
+            .size(size)
+            .bit_size(member.bit_size)
+            .bit_offset(member.bit_offset)
+            .type_view(TypeView::new_base_type_view(type_name))
+            .build()
     }
 
     fn from_structure_type_member_entry_enum_type(
@@ -511,11 +525,13 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
         type_ref: TypeEntryId,
         enumerators: &Vec<EnumeratorEntry>,
     ) -> Option<GlobalVariableView> {
-        let member = StructureTypeMemberEntry {
-            name: member.name.clone(),
-            location: member.location,
-            type_ref: type_ref,
-        };
+        let member = StructureTypeMemberEntry::new(
+            member.name.clone(),
+            member.location,
+            type_ref,
+            None,
+            None,
+        );
         let mut member_view = self.from_structure_type_member_entry(&member, base_address)?;
 
         let enumerators = enumerators.iter().map(Enumerator::from).collect();
@@ -543,13 +559,15 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
             .flat_map(|member| self.from_structure_type_member_entry(member, &address))
             .collect();
 
-        GlobalVariableView::new(
-            member.name.clone(),
-            address,
-            size,
-            TypeView::new_structure_type_view(type_name),
-            members,
-        )
+        GlobalVariableViewBuilder::new()
+            .name(member.name.clone())
+            .address(address)
+            .size(size)
+            .bit_size(member.bit_size)
+            .bit_offset(member.bit_offset)
+            .type_view(TypeView::new_structure_type_view(type_name))
+            .children(members)
+            .build()
     }
 
     fn from_structure_type_member_entry_union_type(
@@ -575,13 +593,15 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
             })
             .collect();
 
-        GlobalVariableView::new(
-            member.name.clone(),
-            address,
-            size,
-            TypeView::new_structure_type_view(type_name),
-            members,
-        )
+        GlobalVariableViewBuilder::new()
+            .name(member.name.clone())
+            .address(address)
+            .size(size)
+            .bit_size(member.bit_size)
+            .bit_offset(member.bit_offset)
+            .type_view(TypeView::new_structure_type_view(type_name))
+            .children(members)
+            .build()
     }
 
     fn from_structure_type_member_entry_array_type(
@@ -599,13 +619,17 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
         let type_view = self.type_view_from_type_entry(element_type_ref)?;
         let (elements, size) = self.array_elements(&address, upper_bound, element_type_ref.clone());
 
-        Some(GlobalVariableView::new(
-            member.name.clone(),
-            address,
-            size,
-            TypeView::new_array_type_view(type_view, upper_bound),
-            elements,
-        ))
+        Some(
+            GlobalVariableViewBuilder::new()
+                .name(member.name.clone())
+                .address(address)
+                .size(size)
+                .bit_size(member.bit_size)
+                .bit_offset(member.bit_offset)
+                .type_view(TypeView::new_array_type_view(type_view, upper_bound))
+                .children(elements)
+                .build(),
+        )
     }
 
     fn array_elements(
@@ -623,7 +647,7 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
                     0.to_string(),
                     element_type_ref,
                 ) {
-                    size += element_view.size();
+                    size += element_view.size;
                     elements.push(element_view);
                 }
                 (elements, size)
@@ -642,7 +666,7 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
                                 n.to_string(),
                                 element_type_ref.clone(),
                             ))?;
-                        size += element_view.size();
+                        size += element_view.size;
                         Some(element_view)
                     })
                     .collect();
