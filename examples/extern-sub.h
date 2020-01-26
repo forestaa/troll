@@ -1,5 +1,5 @@
-#ifndef __MANY_COMPILATION_UNITS_H__
-#define __MANY_COMPILATION_UNITS_H__
+#ifndef __EXTERN_SUB_H__
+#define __EXTERN_SUB_H__
 
 extern int c;
 
