@@ -819,3 +819,36 @@ fn dwarf_info_extern() {
 
     dwarf_info_intoiterator_test("examples/extern", expected);
 }
+
+#[test]
+#[ignore]
+fn dwarf_info_volatile() {
+    let expected = vec![
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(45))
+            .tag(DwarfTag::DW_TAG_variable)
+            .name("c")
+            .type_offset(Offset::new(72))
+            .location(Location::new(16428))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(65))
+            .tag(DwarfTag::DW_TAG_base_type)
+            .byte_size(4)
+            .name("int")
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(72))
+            .tag(DwarfTag::DW_TAG_volatile_type)
+            .type_offset(Offset::new(65))
+            .build(),
+        DwarfInfoBuilder::new()
+            .offset(Offset::new(77))
+            .tag(DwarfTag::DW_TAG_unimplemented)
+            .name("main")
+            .type_offset(Offset::new(65))
+            .build(),
+    ];
+
+    dwarf_info_intoiterator_test("examples/volatile", expected);
+}
