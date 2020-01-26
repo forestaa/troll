@@ -107,7 +107,7 @@ impl DwarfInfo {
         self.type_offset.clone()
     }
 
-    pub fn size(&self) -> Option<usize> {
+    pub fn byte_size(&self) -> Option<usize> {
         self.byte_size
     }
 
