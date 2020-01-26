@@ -1,6 +1,6 @@
 use log::warn;
 
-use super::global_variable::{Address, GlobalVariable};
+use super::global_variable::*;
 use super::type_entry::*;
 use super::type_entry_repository::TypeEntryRepository;
 use super::variable_declaration_repository::VariableDeclarationRepository;
@@ -9,6 +9,11 @@ use crate::library::dwarf::{DwarfInfo, DwarfTag};
 pub struct GlobalVariablesExtractor<'type_repo, 'dec_repo> {
     type_entry_repository: &'type_repo mut TypeEntryRepository,
     variable_declaration_repository: &'dec_repo mut VariableDeclarationRepository,
+}
+
+enum ExtractVariableOutput {
+    GlobalVariable(GlobalVariable),
+    VariableDeclaration(VariableDeclarationEntry),
 }
 
 impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
@@ -26,8 +31,16 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
         let mut global_variables = Vec::new();
         for entry in entries {
             let result = match entry.tag() {
-                DwarfTag::DW_TAG_variable => Self::extract_variable(&entry)
-                    .map(|global_variable| global_variables.push(global_variable)),
+                DwarfTag::DW_TAG_variable => {
+                    Self::extract_variable(&entry).map(|output| match output {
+                        ExtractVariableOutput::GlobalVariable(global_variable) => {
+                            global_variables.push(global_variable)
+                        }
+                        ExtractVariableOutput::VariableDeclaration(variable_dec) => {
+                            self.variable_declaration_repository.save(variable_dec)
+                        }
+                    })
+                }
                 DwarfTag::DW_TAG_typedef => Self::extract_typedef(&entry)
                     .map(|type_entry| self.type_entry_repository.save(type_entry)),
                 DwarfTag::DW_TAG_const_type => Self::extract_const_type(&entry)
@@ -60,17 +73,49 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
         global_variables
     }
 
-    fn extract_variable(entry: &DwarfInfo) -> Result<GlobalVariable, String> {
+    fn extract_variable(entry: &DwarfInfo) -> Result<ExtractVariableOutput, String> {
+        match entry.declaration() {
+            None => Self::extract_variable_without_declaration(entry)
+                .map(|global_variable| ExtractVariableOutput::GlobalVariable(global_variable)),
+            Some(_) => Self::extract_variable_with_declaration(entry)
+                .map(|dec| ExtractVariableOutput::VariableDeclaration(dec)),
+        }
+    }
+
+    fn extract_variable_without_declaration(entry: &DwarfInfo) -> Result<GlobalVariable, String> {
+        let address = entry.location().map(Address::new);
+        match entry.specification() {
+            None => {
+                let name = match entry.name() {
+                    Some(name) => Ok(name),
+                    None => Err("variable entry should have name"),
+                }?;
+                let type_ref = match entry.type_offset() {
+                    Some(type_ref) => Ok(TypeEntryId::new(type_ref)),
+                    None => Err("variable entry should have type"),
+                }?;
+                Ok(GlobalVariable::new_variable(address, name, type_ref))
+            }
+            Some(dec_ref) => {
+                let spec = VariableDeclarationEntryId::new(dec_ref);
+                Ok(GlobalVariable::new_variable_with_spec(address, spec))
+            }
+        }
+    }
+
+    fn extract_variable_with_declaration(
+        entry: &DwarfInfo,
+    ) -> Result<VariableDeclarationEntry, String> {
+        let id = VariableDeclarationEntryId::new(entry.offset());
         let name = match entry.name() {
             Some(name) => Ok(name),
-            None => Err("variable entry should have name"),
+            None => Err("variable entry with declaration should have name"),
         }?;
-        let address = entry.location().map(Address::new);
         let type_ref = match entry.type_offset() {
             Some(type_ref) => Ok(TypeEntryId::new(type_ref)),
-            None => Err("variable entry should have type"),
+            None => Err("variable entry with declaration should have type"),
         }?;
-        Ok(GlobalVariable::new_variable(address, name, type_ref))
+        Ok(VariableDeclarationEntry::new(id, name, type_ref))
     }
 
     fn extract_typedef(entry: &DwarfInfo) -> Result<TypeEntry, String> {
