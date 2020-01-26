@@ -75,6 +75,26 @@ pub struct StructureTypeMemberEntry {
     pub name: String,
     pub location: usize,
     pub type_ref: TypeEntryId,
+    pub bit_size: Option<usize>,
+    pub bit_offset: Option<usize>,
+}
+
+impl StructureTypeMemberEntry {
+    pub fn new(
+        name: String,
+        location: usize,
+        type_ref: TypeEntryId,
+        bit_size: Option<usize>,
+        bit_offset: Option<usize>,
+    ) -> StructureTypeMemberEntry {
+        StructureTypeMemberEntry {
+            name,
+            location,
+            type_ref,
+            bit_size,
+            bit_offset,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -190,5 +210,100 @@ impl Entity for TypeEntry {
 
     fn id(&self) -> &Self::Id {
         &self.id
+    }
+}
+
+pub struct StructureTypeMemberEntryBuilder<NameP, LocationP, TypeRefP> {
+    name: NameP,
+    location: LocationP,
+    type_ref: TypeRefP,
+    bit_size: Option<usize>,
+    bit_offset: Option<usize>,
+}
+
+impl StructureTypeMemberEntryBuilder<(), (), ()> {
+    pub fn new() -> Self {
+        StructureTypeMemberEntryBuilder {
+            name: (),
+            location: (),
+            type_ref: (),
+            bit_size: None,
+            bit_offset: None,
+        }
+    }
+}
+
+impl StructureTypeMemberEntryBuilder<String, usize, TypeEntryId> {
+    pub fn build(self) -> StructureTypeMemberEntry {
+        StructureTypeMemberEntry {
+            name: self.name,
+            location: self.location,
+            type_ref: self.type_ref,
+            bit_size: self.bit_size,
+            bit_offset: self.bit_offset,
+        }
+    }
+}
+
+impl<LocationP, TypeRefP> StructureTypeMemberEntryBuilder<(), LocationP, TypeRefP> {
+    pub fn name<S: Into<String>>(
+        self,
+        name: S,
+    ) -> StructureTypeMemberEntryBuilder<String, LocationP, TypeRefP> {
+        StructureTypeMemberEntryBuilder {
+            name: name.into(),
+            location: self.location,
+            type_ref: self.type_ref,
+            bit_size: self.bit_size,
+            bit_offset: self.bit_offset,
+        }
+    }
+}
+
+impl<NameP, TypeRefP> StructureTypeMemberEntryBuilder<NameP, (), TypeRefP> {
+    pub fn location(
+        self,
+        location: usize,
+    ) -> StructureTypeMemberEntryBuilder<NameP, usize, TypeRefP> {
+        StructureTypeMemberEntryBuilder {
+            name: self.name,
+            location: location,
+            type_ref: self.type_ref,
+            bit_size: self.bit_size,
+            bit_offset: self.bit_offset,
+        }
+    }
+}
+
+impl<NameP, LocationP> StructureTypeMemberEntryBuilder<NameP, LocationP, ()> {
+    pub fn type_ref(
+        self,
+        type_ref: TypeEntryId,
+    ) -> StructureTypeMemberEntryBuilder<NameP, LocationP, TypeEntryId> {
+        StructureTypeMemberEntryBuilder {
+            name: self.name,
+            location: self.location,
+            type_ref: type_ref,
+            bit_size: self.bit_size,
+            bit_offset: self.bit_offset,
+        }
+    }
+}
+
+impl<NameP, LocationP, TypeRefP> StructureTypeMemberEntryBuilder<NameP, LocationP, TypeRefP> {
+    pub fn bit_size(
+        mut self,
+        size: usize,
+    ) -> StructureTypeMemberEntryBuilder<NameP, LocationP, TypeRefP> {
+        self.bit_size = Some(size);
+        self
+    }
+
+    pub fn bit_offset(
+        mut self,
+        offset: usize,
+    ) -> StructureTypeMemberEntryBuilder<NameP, LocationP, TypeRefP> {
+        self.bit_offset = Some(offset);
+        self
     }
 }

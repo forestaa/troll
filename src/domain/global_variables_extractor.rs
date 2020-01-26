@@ -240,11 +240,12 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
                     }
                 }?;
 
-                Some(StructureTypeMemberEntry {
-                    name,
-                    location,
-                    type_ref,
-                })
+                let bit_size = entry.bit_size();
+                let bit_offset = entry.bit_offset();
+
+                Some(StructureTypeMemberEntry::new(
+                    name, location, type_ref, bit_size, bit_offset,
+                ))
             })
             .collect();
         Ok(TypeEntry::new_structure_type_entry(id, name, size, members))

@@ -420,11 +420,13 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
         type_name: String,
         type_ref: TypeEntryId,
     ) -> Option<GlobalVariableView> {
-        let member = StructureTypeMemberEntry {
-            name: member.name.clone(),
-            location: member.location,
-            type_ref: type_ref,
-        };
+        let member = StructureTypeMemberEntry::new(
+            member.name.clone(),
+            member.location,
+            type_ref,
+            None,
+            None,
+        );
         let mut member_view = self.from_structure_type_member_entry(&member, base_address)?;
 
         member_view
@@ -438,11 +440,13 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
         base_address: &Option<Address>,
         type_ref: TypeEntryId,
     ) -> Option<GlobalVariableView> {
-        let member = StructureTypeMemberEntry {
-            name: member.name.clone(),
-            location: member.location,
-            type_ref: type_ref,
-        };
+        let member = StructureTypeMemberEntry::new(
+            member.name.clone(),
+            member.location,
+            type_ref,
+            None,
+            None,
+        );
         let mut member_view = self.from_structure_type_member_entry(&member, base_address)?;
 
         member_view.map_type_view(|type_view| TypeView::new_const_type_view(type_view));
@@ -511,11 +515,13 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
         type_ref: TypeEntryId,
         enumerators: &Vec<EnumeratorEntry>,
     ) -> Option<GlobalVariableView> {
-        let member = StructureTypeMemberEntry {
-            name: member.name.clone(),
-            location: member.location,
-            type_ref: type_ref,
-        };
+        let member = StructureTypeMemberEntry::new(
+            member.name.clone(),
+            member.location,
+            type_ref,
+            None,
+            None,
+        );
         let mut member_view = self.from_structure_type_member_entry(&member, base_address)?;
 
         let enumerators = enumerators.iter().map(Enumerator::from).collect();
