@@ -6,26 +6,28 @@ pub struct GlobalVariableView {
     name: String,
     address: Option<Address>,
     size: usize,
+    bit_size: Option<usize>,
+    bit_offset: Option<usize>,
     type_view: TypeView,
     children: Vec<GlobalVariableView>,
 }
 
 impl GlobalVariableView {
-    pub fn new(
-        name: String,
-        address: Option<Address>,
-        size: usize,
-        type_view: TypeView,
-        children: Vec<GlobalVariableView>,
-    ) -> Self {
-        GlobalVariableView {
-            name,
-            address,
-            size,
-            type_view,
-            children,
-        }
-    }
+    // pub fn new(
+    //     name: String,
+    //     address: Option<Address>,
+    //     size: usize,
+    //     type_view: TypeView,
+    //     children: Vec<GlobalVariableView>,
+    // ) -> Self {
+    //     GlobalVariableView {
+    //         name,
+    //         address,
+    //         size,
+    //         type_view,
+    //         children,
+    //     }
+    // }
 
     pub fn name(&self) -> &String {
         &self.name
@@ -166,5 +168,127 @@ impl TypeView {
 
     pub fn new_function_type_view() -> Self {
         Self::Function
+    }
+}
+
+pub struct GlobalVariableViewBuilder<NameP, AddressP, SizeP, TypeViewP> {
+    name: NameP,
+    address: AddressP,
+    size: SizeP,
+    bit_size: Option<usize>,
+    bit_offset: Option<usize>,
+    type_view: TypeViewP,
+    children: Vec<GlobalVariableView>,
+}
+
+impl GlobalVariableViewBuilder<(), (), (), ()> {
+    pub fn new() -> Self {
+        GlobalVariableViewBuilder {
+            name: (),
+            address: (),
+            size: (),
+            bit_size: None,
+            bit_offset: None,
+            type_view: (),
+            children: Vec::new(),
+        }
+    }
+}
+
+impl GlobalVariableViewBuilder<String, Option<Address>, usize, TypeView> {
+    pub fn build(self) -> GlobalVariableView {
+        GlobalVariableView {
+            name: self.name,
+            address: self.address,
+            size: self.size,
+            bit_size: self.bit_size,
+            bit_offset: self.bit_offset,
+            type_view: self.type_view,
+            children: self.children,
+        }
+    }
+}
+
+impl<AddressP, SizeP, TypeViewP> GlobalVariableViewBuilder<(), AddressP, SizeP, TypeViewP> {
+    pub fn name<S: Into<String>>(
+        self,
+        name: S,
+    ) -> GlobalVariableViewBuilder<String, AddressP, SizeP, TypeViewP> {
+        GlobalVariableViewBuilder {
+            name: name.into(),
+            address: self.address,
+            size: self.size,
+            bit_size: self.bit_size,
+            bit_offset: self.bit_offset,
+            type_view: self.type_view,
+            children: self.children,
+        }
+    }
+}
+
+impl<NameP, SizeP, TypeViewP> GlobalVariableViewBuilder<NameP, (), SizeP, TypeViewP> {
+    pub fn address(
+        self,
+        address: Option<Address>,
+    ) -> GlobalVariableViewBuilder<NameP, Option<Address>, SizeP, TypeViewP> {
+        GlobalVariableViewBuilder {
+            name: self.name,
+            address: address,
+            size: self.size,
+            bit_size: self.bit_size,
+            bit_offset: self.bit_offset,
+            type_view: self.type_view,
+            children: self.children,
+        }
+    }
+}
+
+impl<NameP, AddressP, TypeViewP> GlobalVariableViewBuilder<NameP, AddressP, (), TypeViewP> {
+    pub fn size(self, size: usize) -> GlobalVariableViewBuilder<NameP, AddressP, usize, TypeViewP> {
+        GlobalVariableViewBuilder {
+            name: self.name,
+            address: self.address,
+            size: size,
+            bit_size: self.bit_size,
+            bit_offset: self.bit_offset,
+            type_view: self.type_view,
+            children: self.children,
+        }
+    }
+}
+
+impl<NameP, AddressP, SizeP> GlobalVariableViewBuilder<NameP, AddressP, SizeP, ()> {
+    pub fn type_view(
+        self,
+        type_view: TypeView,
+    ) -> GlobalVariableViewBuilder<NameP, AddressP, SizeP, TypeView> {
+        GlobalVariableViewBuilder {
+            name: self.name,
+            address: self.address,
+            size: self.size,
+            bit_size: self.bit_size,
+            bit_offset: self.bit_offset,
+            type_view: type_view,
+            children: self.children,
+        }
+    }
+}
+
+impl<NameP, AddressP, SizeP, TypeViewP>
+    GlobalVariableViewBuilder<NameP, AddressP, SizeP, TypeViewP>
+{
+    pub fn bit_size(mut self, size: Option<usize>) -> Self {
+        self.bit_size = size;
+        self
+    }
+
+    pub fn bit_offset(mut self, offset: Option<usize>) -> Self {
+        self.bit_offset = offset;
+        self
+    }
+
+    pub fn children(mut self, children: Vec<GlobalVariableView>) -> Self {
+        self.children = children;
+        self
     }
 }
