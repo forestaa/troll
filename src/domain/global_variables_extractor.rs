@@ -62,6 +62,7 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
                     .save(Self::extract_function_type(&entry))),
                 DwarfTag::DW_TAG_enumerator => Ok(()),
                 DwarfTag::DW_TAG_subrange_type => Ok(()),
+                DwarfTag::DW_TAG_volatile_type => unimplemented!(),
                 DwarfTag::DW_TAG_formal_parameter => Ok(()),
                 DwarfTag::DW_TAG_unimplemented => Ok(()),
             };

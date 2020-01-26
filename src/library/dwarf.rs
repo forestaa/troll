@@ -49,6 +49,7 @@ pub enum DwarfTag {
     DW_TAG_array_type,
     DW_TAG_subroutine_type,
     DW_TAG_subrange_type,
+    DW_TAG_volatile_type,
     DW_TAG_formal_parameter,
     DW_TAG_unimplemented,
 }
@@ -68,6 +69,7 @@ impl From<gimli::DwTag> for DwarfTag {
             gimli::DW_TAG_array_type => DwarfTag::DW_TAG_array_type,
             gimli::DW_TAG_subroutine_type => DwarfTag::DW_TAG_subroutine_type,
             gimli::DW_TAG_subrange_type => DwarfTag::DW_TAG_subrange_type,
+            gimli::DW_TAG_volatile_type => DwarfTag::DW_TAG_volatile_type,
             gimli::DW_TAG_formal_parameter => DwarfTag::DW_TAG_formal_parameter,
             _ => DwarfTag::DW_TAG_unimplemented,
         }
