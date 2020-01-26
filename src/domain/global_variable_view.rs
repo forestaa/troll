@@ -28,6 +28,9 @@ pub enum TypeView {
         name: String,
         type_view: Box<TypeView>,
     },
+    Volatile {
+        type_view: Box<TypeView>,
+    },
     Const {
         type_view: Box<TypeView>,
     },
@@ -75,6 +78,12 @@ impl TypeView {
     pub fn new_typedef_type_view<S: Into<String>>(name: S, type_view: Self) -> Self {
         Self::TypeDef {
             name: name.into(),
+            type_view: Box::new(type_view),
+        }
+    }
+
+    pub fn new_volatile_type_view(type_view: Self) -> Self {
+        Self::Volatile {
             type_view: Box::new(type_view),
         }
     }

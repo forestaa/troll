@@ -179,6 +179,7 @@ impl fmt::Display for TypeView {
                 .fmt(f),
                 _ => format!("{}", name).fmt(f),
             },
+            TypeView::Volatile { type_view } => format!("volatile {}", type_view).fmt(f),
             TypeView::Const { type_view } => format!("const {}", type_view).fmt(f),
             TypeView::VoidPointer => format!("void pointer").fmt(f),
             TypeView::Pointer { type_view } => format!("pointer to {}", type_view).fmt(f),

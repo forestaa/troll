@@ -84,6 +84,8 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
                     type_name.clone(),
                     type_ref.clone(),
                 ),
+                TypeEntryKind::VolatileType { type_ref } => self
+                    .from_global_variable_volatile_type(address, variable_name, type_ref.clone()),
                 TypeEntryKind::ConstType { type_ref } => {
                     self.from_global_variable_const_type(address, variable_name, type_ref.clone())
                 }
@@ -165,6 +167,18 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
             self.from_global_variable_no_spec(address, variable_name, type_ref)?;
         global_variable_view
             .map_type_view(|type_view| TypeView::new_typedef_type_view(type_name, type_view));
+        Some(global_variable_view)
+    }
+
+    fn from_global_variable_volatile_type(
+        &self,
+        address: Option<Address>,
+        variable_name: String,
+        type_ref: TypeEntryId,
+    ) -> Option<GlobalVariableView> {
+        let mut global_variable_view =
+            self.from_global_variable_no_spec(address, variable_name, type_ref)?;
+        global_variable_view.map_type_view(|type_view| TypeView::new_volatile_type_view(type_view));
         Some(global_variable_view)
     }
 
@@ -339,6 +353,12 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
                     type_name.clone(),
                     type_ref.clone(),
                 ),
+                TypeEntryKind::VolatileType { type_ref } => self
+                    .from_structure_type_member_entry_volatile_type(
+                        member,
+                        base_address,
+                        type_ref.clone(),
+                    ),
                 TypeEntryKind::ConstType { type_ref } => self
                     .from_structure_type_member_entry_const_type(
                         member,
@@ -434,6 +454,25 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
 
         member_view
             .map_type_view(|type_view| TypeView::new_typedef_type_view(type_name, type_view));
+        Some(member_view)
+    }
+
+    fn from_structure_type_member_entry_volatile_type(
+        &self,
+        member: &StructureTypeMemberEntry,
+        base_address: &Option<Address>,
+        type_ref: TypeEntryId,
+    ) -> Option<GlobalVariableView> {
+        let member = StructureTypeMemberEntry::new(
+            member.name.clone(),
+            member.location,
+            type_ref,
+            None,
+            None,
+        );
+        let mut member_view = self.from_structure_type_member_entry(&member, base_address)?;
+
+        member_view.map_type_view(|type_view| TypeView::new_volatile_type_view(type_view));
         Some(member_view)
     }
 
@@ -689,6 +728,10 @@ impl<'type_repo, 'dec_repo> GlobalVariableViewFactory<'type_repo, 'dec_repo> {
                 TypeEntryKind::TypeDef { name, type_ref } => {
                     let type_view = self.type_view_from_type_entry(type_ref)?;
                     Some(TypeView::new_typedef_type_view(name.clone(), type_view))
+                }
+                TypeEntryKind::VolatileType { type_ref } => {
+                    let type_view = self.type_view_from_type_entry(type_ref)?;
+                    Some(TypeView::new_volatile_type_view(type_view))
                 }
                 TypeEntryKind::ConstType { type_ref } => {
                     let type_view = self.type_view_from_type_entry(type_ref)?;
