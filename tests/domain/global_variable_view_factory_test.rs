@@ -398,18 +398,24 @@ fn from_global_variable_union() {
             Some(String::from("book")),
             4,
             vec![
-                UnionTypeMemberEntry {
-                    name: String::from("name"),
-                    type_ref: TypeEntryId::new(Offset::new(83)),
-                },
-                UnionTypeMemberEntry {
-                    name: String::from("price"),
-                    type_ref: TypeEntryId::new(Offset::new(90)),
-                },
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("name")
+                        .type_ref(TypeEntryId::new(Offset::new(86)))
+                        .build(),
+                ),
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("price")
+                        .type_ref(TypeEntryId::new(Offset::new(93)))
+                        .bit_size(Some(8))
+                        .bit_offset(Some(24))
+                        .build(),
+                ),
             ],
         ),
-        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(83)), String::from("char"), 1),
-        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(90)), String::from("int"), 4),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(86)), String::from("char"), 1),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(93)), String::from("int"), 4),
     ];
 
     let global_variable = GlobalVariable::new_variable(
@@ -434,6 +440,8 @@ fn from_global_variable_union() {
                 .name("price")
                 .address(Some(Address::new(Location::new(16428))))
                 .size(4)
+                .bit_size(Some(8))
+                .bit_offset(Some(24))
                 .type_view(TypeView::new_base_type_view("int"))
                 .build(),
         ])
@@ -463,14 +471,18 @@ fn from_global_variable_anonymous_union_structure() {
             None,
             4,
             vec![
-                UnionTypeMemberEntry {
-                    name: String::from("a"),
-                    type_ref: TypeEntryId::new(Offset::new(66)),
-                },
-                UnionTypeMemberEntry {
-                    name: String::from("b"),
-                    type_ref: TypeEntryId::new(Offset::new(123)),
-                },
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("a")
+                        .type_ref(TypeEntryId::new(Offset::new(66)))
+                        .build(),
+                ),
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("b")
+                        .type_ref(TypeEntryId::new(Offset::new(123)))
+                        .build(),
+                ),
             ],
         ),
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(123)), String::from("char"), 1),

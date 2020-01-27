@@ -557,7 +557,7 @@ fn extract_union() {
                     .name("price")
                     .type_offset(Offset::new(93))
                     .byte_size(4)
-                    .bit_offset(8)
+                    .bit_size(8)
                     .bit_offset(24)
                     .build(),
             ])
@@ -601,14 +601,20 @@ fn extract_union() {
             Some(String::from("book")),
             4,
             vec![
-                UnionTypeMemberEntry {
-                    name: String::from("name"),
-                    type_ref: TypeEntryId::new(Offset::new(86)),
-                },
-                UnionTypeMemberEntry {
-                    name: String::from("price"),
-                    type_ref: TypeEntryId::new(Offset::new(93)),
-                },
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("name")
+                        .type_ref(TypeEntryId::new(Offset::new(86)))
+                        .build(),
+                ),
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("price")
+                        .type_ref(TypeEntryId::new(Offset::new(93)))
+                        .bit_size(Some(8))
+                        .bit_offset(Some(24))
+                        .build(),
+                ),
             ],
         ),
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(86)), String::from("char"), 1),
@@ -718,14 +724,18 @@ fn extract_anonymous_union_structure() {
             None,
             4,
             vec![
-                UnionTypeMemberEntry {
-                    name: String::from("a"),
-                    type_ref: TypeEntryId::new(Offset::new(66)),
-                },
-                UnionTypeMemberEntry {
-                    name: String::from("b"),
-                    type_ref: TypeEntryId::new(Offset::new(123)),
-                },
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("a")
+                        .type_ref(TypeEntryId::new(Offset::new(66)))
+                        .build(),
+                ),
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("b")
+                        .type_ref(TypeEntryId::new(Offset::new(123)))
+                        .build(),
+                ),
             ],
         ),
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(123)), String::from("char"), 1),
