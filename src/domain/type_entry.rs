@@ -77,12 +77,6 @@ pub struct EnumeratorEntry {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct UnionTypeMemberEntry {
-    pub name: String,
-    pub type_ref: TypeEntryId,
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub struct TypeEntry {
     id: TypeEntryId,
     pub kind: TypeEntryKind,
@@ -214,7 +208,7 @@ pub struct MemberEntry<T> {
 #[derive(Debug, Clone, PartialEq)]
 pub struct StructureTypeMemberEntry(MemberEntry<Structure>);
 #[derive(Debug, Clone, PartialEq)]
-pub struct UnionTypeMemberEntry_(MemberEntry<Union>);
+pub struct UnionTypeMemberEntry(MemberEntry<Union>);
 
 impl StructureTypeMemberEntry {
     pub fn new(
@@ -242,8 +236,51 @@ impl From<MemberEntry<Structure>> for StructureTypeMemberEntry {
     }
 }
 
+impl Into<MemberEntry<Structure>> for StructureTypeMemberEntry {
+    fn into(self) -> MemberEntry<Structure> {
+        self.0
+    }
+}
+
 impl Deref for StructureTypeMemberEntry {
     type Target = MemberEntry<Structure>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl UnionTypeMemberEntry {
+    pub fn new(
+        name: String,
+        type_ref: TypeEntryId,
+        bit_size: Option<usize>,
+        bit_offset: Option<usize>,
+    ) -> Self {
+        Self(
+            MemberEntryBuilder::new_union()
+                .name(name)
+                .type_ref(type_ref)
+                .bit_size(bit_size)
+                .bit_offset(bit_offset)
+                .build(),
+        )
+    }
+}
+
+impl From<MemberEntry<Union>> for UnionTypeMemberEntry {
+    fn from(entry: MemberEntry<Union>) -> Self {
+        Self(entry)
+    }
+}
+
+impl Into<MemberEntry<Union>> for UnionTypeMemberEntry {
+    fn into(self) -> MemberEntry<Union> {
+        self.0
+    }
+}
+
+impl Deref for UnionTypeMemberEntry {
+    type Target = MemberEntry<Union>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
