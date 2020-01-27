@@ -292,7 +292,12 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
                     }
                 }?;
 
-                Some(UnionTypeMemberEntry { name, type_ref })
+                let bit_size = entry.bit_size();
+                let bit_offset = entry.bit_offset();
+
+                Some(UnionTypeMemberEntry::new(
+                    name, type_ref, bit_size, bit_offset,
+                ))
             })
             .collect();
         Ok(TypeEntry::new_union_type_entry(id, name, size, members))

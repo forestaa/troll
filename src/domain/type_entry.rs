@@ -1,3 +1,6 @@
+use std::marker::PhantomData;
+use std::ops::Deref;
+
 use super::entity::Entity;
 use crate::library::dwarf;
 
@@ -71,39 +74,6 @@ pub enum TypeEntryKind {
 pub struct EnumeratorEntry {
     pub name: String,
     pub value: usize,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct StructureTypeMemberEntry {
-    pub name: String,
-    pub location: usize,
-    pub type_ref: TypeEntryId,
-    pub bit_size: Option<usize>,
-    pub bit_offset: Option<usize>,
-}
-
-impl StructureTypeMemberEntry {
-    pub fn new(
-        name: String,
-        location: usize,
-        type_ref: TypeEntryId,
-        bit_size: Option<usize>,
-        bit_offset: Option<usize>,
-    ) -> StructureTypeMemberEntry {
-        StructureTypeMemberEntry {
-            name,
-            location,
-            type_ref,
-            bit_size,
-            bit_offset,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct UnionTypeMemberEntry {
-    pub name: String,
-    pub type_ref: TypeEntryId,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -221,97 +191,205 @@ impl Entity for TypeEntry {
     }
 }
 
-pub struct StructureTypeMemberEntryBuilder<NameP, LocationP, TypeRefP> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct Structure;
+#[derive(Debug, Clone, PartialEq)]
+pub struct Union;
+#[derive(Debug, Clone, PartialEq)]
+pub struct MemberEntry<T> {
+    pub name: String,
+    pub location: usize,
+    pub type_ref: TypeEntryId,
+    pub bit_size: Option<usize>,
+    pub bit_offset: Option<usize>,
+    _phantom: PhantomData<T>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct StructureTypeMemberEntry(MemberEntry<Structure>);
+#[derive(Debug, Clone, PartialEq)]
+pub struct UnionTypeMemberEntry(MemberEntry<Union>);
+
+impl StructureTypeMemberEntry {
+    pub fn new(
+        name: String,
+        location: usize,
+        type_ref: TypeEntryId,
+        bit_size: Option<usize>,
+        bit_offset: Option<usize>,
+    ) -> Self {
+        Self(
+            MemberEntryBuilder::new_structure()
+                .name(name)
+                .location(location)
+                .type_ref(type_ref)
+                .bit_size(bit_size)
+                .bit_offset(bit_offset)
+                .build(),
+        )
+    }
+}
+
+impl From<MemberEntry<Structure>> for StructureTypeMemberEntry {
+    fn from(entry: MemberEntry<Structure>) -> Self {
+        Self(entry)
+    }
+}
+
+impl Into<MemberEntry<Structure>> for StructureTypeMemberEntry {
+    fn into(self) -> MemberEntry<Structure> {
+        self.0
+    }
+}
+
+impl Deref for StructureTypeMemberEntry {
+    type Target = MemberEntry<Structure>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl UnionTypeMemberEntry {
+    pub fn new(
+        name: String,
+        type_ref: TypeEntryId,
+        bit_size: Option<usize>,
+        bit_offset: Option<usize>,
+    ) -> Self {
+        Self(
+            MemberEntryBuilder::new_union()
+                .name(name)
+                .type_ref(type_ref)
+                .bit_size(bit_size)
+                .bit_offset(bit_offset)
+                .build(),
+        )
+    }
+}
+
+impl From<MemberEntry<Union>> for UnionTypeMemberEntry {
+    fn from(entry: MemberEntry<Union>) -> Self {
+        Self(entry)
+    }
+}
+
+impl Into<MemberEntry<Union>> for UnionTypeMemberEntry {
+    fn into(self) -> MemberEntry<Union> {
+        self.0
+    }
+}
+
+impl Deref for UnionTypeMemberEntry {
+    type Target = MemberEntry<Union>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+pub struct MemberEntryBuilder<NameP, LocationP, TypeRefP, T> {
     name: NameP,
     location: LocationP,
     type_ref: TypeRefP,
     bit_size: Option<usize>,
     bit_offset: Option<usize>,
+    _phantom: PhantomData<T>,
 }
 
-impl StructureTypeMemberEntryBuilder<(), (), ()> {
-    pub fn new() -> Self {
-        StructureTypeMemberEntryBuilder {
+impl MemberEntryBuilder<(), (), (), Structure> {
+    pub fn new_structure() -> Self {
+        Self {
             name: (),
             location: (),
             type_ref: (),
             bit_size: None,
             bit_offset: None,
+            _phantom: PhantomData,
         }
     }
 }
 
-impl StructureTypeMemberEntryBuilder<String, usize, TypeEntryId> {
-    pub fn build(self) -> StructureTypeMemberEntry {
-        StructureTypeMemberEntry {
+impl MemberEntryBuilder<(), usize, (), Union> {
+    pub fn new_union() -> Self {
+        Self {
+            name: (),
+            location: 0,
+            type_ref: (),
+            bit_size: None,
+            bit_offset: None,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<T> MemberEntryBuilder<String, usize, TypeEntryId, T> {
+    pub fn build(self) -> MemberEntry<T> {
+        MemberEntry {
             name: self.name,
             location: self.location,
             type_ref: self.type_ref,
             bit_size: self.bit_size,
             bit_offset: self.bit_offset,
+            _phantom: PhantomData,
         }
     }
 }
 
-impl<LocationP, TypeRefP> StructureTypeMemberEntryBuilder<(), LocationP, TypeRefP> {
+impl<LocationP, TypeRefP, T> MemberEntryBuilder<(), LocationP, TypeRefP, T> {
     pub fn name<S: Into<String>>(
         self,
         name: S,
-    ) -> StructureTypeMemberEntryBuilder<String, LocationP, TypeRefP> {
-        StructureTypeMemberEntryBuilder {
+    ) -> MemberEntryBuilder<String, LocationP, TypeRefP, T> {
+        MemberEntryBuilder {
             name: name.into(),
             location: self.location,
             type_ref: self.type_ref,
             bit_size: self.bit_size,
             bit_offset: self.bit_offset,
+            _phantom: PhantomData,
         }
     }
 }
 
-impl<NameP, TypeRefP> StructureTypeMemberEntryBuilder<NameP, (), TypeRefP> {
+impl<NameP, TypeRefP> MemberEntryBuilder<NameP, (), TypeRefP, Structure> {
     pub fn location(
         self,
         location: usize,
-    ) -> StructureTypeMemberEntryBuilder<NameP, usize, TypeRefP> {
-        StructureTypeMemberEntryBuilder {
+    ) -> MemberEntryBuilder<NameP, usize, TypeRefP, Structure> {
+        MemberEntryBuilder {
             name: self.name,
             location: location,
             type_ref: self.type_ref,
             bit_size: self.bit_size,
             bit_offset: self.bit_offset,
+            _phantom: PhantomData,
         }
     }
 }
 
-impl<NameP, LocationP> StructureTypeMemberEntryBuilder<NameP, LocationP, ()> {
+impl<NameP, LocationP, T> MemberEntryBuilder<NameP, LocationP, (), T> {
     pub fn type_ref(
         self,
         type_ref: TypeEntryId,
-    ) -> StructureTypeMemberEntryBuilder<NameP, LocationP, TypeEntryId> {
-        StructureTypeMemberEntryBuilder {
+    ) -> MemberEntryBuilder<NameP, LocationP, TypeEntryId, T> {
+        MemberEntryBuilder {
             name: self.name,
             location: self.location,
             type_ref: type_ref,
             bit_size: self.bit_size,
             bit_offset: self.bit_offset,
+            _phantom: PhantomData,
         }
     }
 }
 
-impl<NameP, LocationP, TypeRefP> StructureTypeMemberEntryBuilder<NameP, LocationP, TypeRefP> {
-    pub fn bit_size(
-        mut self,
-        size: usize,
-    ) -> StructureTypeMemberEntryBuilder<NameP, LocationP, TypeRefP> {
-        self.bit_size = Some(size);
+impl<NameP, LocationP, TypeRefP, T> MemberEntryBuilder<NameP, LocationP, TypeRefP, T> {
+    pub fn bit_size(mut self, size: Option<usize>) -> Self {
+        self.bit_size = size;
         self
     }
 
-    pub fn bit_offset(
-        mut self,
-        offset: usize,
-    ) -> StructureTypeMemberEntryBuilder<NameP, LocationP, TypeRefP> {
-        self.bit_offset = Some(offset);
+    pub fn bit_offset(mut self, offset: Option<usize>) -> Self {
+        self.bit_offset = offset;
         self
     }
 }

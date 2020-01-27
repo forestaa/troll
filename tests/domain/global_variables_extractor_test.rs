@@ -499,23 +499,29 @@ fn extract_structure() {
             Some(String::from("hoge")),
             8,
             vec![
-                StructureTypeMemberEntryBuilder::new()
-                    .name("hoge")
-                    .location(0)
-                    .type_ref(TypeEntryId::new(Offset::new(101)))
-                    .build(),
-                StructureTypeMemberEntryBuilder::new()
-                    .name("fuga")
-                    .location(4)
-                    .type_ref(TypeEntryId::new(Offset::new(108)))
-                    .build(),
-                StructureTypeMemberEntryBuilder::new()
-                    .name("pohe")
-                    .location(4)
-                    .type_ref(TypeEntryId::new(Offset::new(115)))
-                    .bit_size(1)
-                    .bit_offset(23)
-                    .build(),
+                StructureTypeMemberEntry::from(
+                    MemberEntryBuilder::new_structure()
+                        .name("hoge")
+                        .location(0)
+                        .type_ref(TypeEntryId::new(Offset::new(101)))
+                        .build(),
+                ),
+                StructureTypeMemberEntry::from(
+                    MemberEntryBuilder::new_structure()
+                        .name("fuga")
+                        .location(4)
+                        .type_ref(TypeEntryId::new(Offset::new(108)))
+                        .build(),
+                ),
+                StructureTypeMemberEntry::from(
+                    MemberEntryBuilder::new_structure()
+                        .name("pohe")
+                        .location(4)
+                        .type_ref(TypeEntryId::new(Offset::new(115)))
+                        .bit_size(Some(1))
+                        .bit_offset(Some(23))
+                        .build(),
+                ),
             ],
         ),
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(101)), String::from("int"), 4),
@@ -543,40 +549,43 @@ fn extract_union() {
                     .offset(Offset::new(58))
                     .tag(DwarfTag::DW_TAG_unimplemented)
                     .name("name")
-                    .type_offset(Offset::new(83))
+                    .type_offset(Offset::new(86))
                     .build(),
                 DwarfInfoBuilder::new()
                     .offset(Offset::new(70))
                     .tag(DwarfTag::DW_TAG_unimplemented)
                     .name("price")
-                    .type_offset(Offset::new(90))
+                    .type_offset(Offset::new(93))
+                    .byte_size(4)
+                    .bit_size(8)
+                    .bit_offset(24)
                     .build(),
             ])
             .build(),
         DwarfInfoBuilder::new()
-            .offset(Offset::new(83))
+            .offset(Offset::new(86))
             .tag(DwarfTag::DW_TAG_base_type)
             .byte_size(1)
             .name("char")
             .build(),
         DwarfInfoBuilder::new()
-            .offset(Offset::new(90))
+            .offset(Offset::new(93))
             .tag(DwarfTag::DW_TAG_base_type)
             .byte_size(4)
             .name("int")
             .build(),
         DwarfInfoBuilder::new()
-            .offset(Offset::new(97))
+            .offset(Offset::new(100))
             .tag(DwarfTag::DW_TAG_variable)
             .name("book")
             .type_offset(Offset::new(45))
             .location(Location::new(16428))
             .build(),
         DwarfInfoBuilder::new()
-            .offset(Offset::new(119))
+            .offset(Offset::new(122))
             .tag(DwarfTag::DW_TAG_unimplemented)
             .name("main")
-            .type_offset(Offset::new(90))
+            .type_offset(Offset::new(93))
             .build(),
     ];
 
@@ -592,18 +601,24 @@ fn extract_union() {
             Some(String::from("book")),
             4,
             vec![
-                UnionTypeMemberEntry {
-                    name: String::from("name"),
-                    type_ref: TypeEntryId::new(Offset::new(83)),
-                },
-                UnionTypeMemberEntry {
-                    name: String::from("price"),
-                    type_ref: TypeEntryId::new(Offset::new(90)),
-                },
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("name")
+                        .type_ref(TypeEntryId::new(Offset::new(86)))
+                        .build(),
+                ),
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("price")
+                        .type_ref(TypeEntryId::new(Offset::new(93)))
+                        .bit_size(Some(8))
+                        .bit_offset(Some(24))
+                        .build(),
+                ),
             ],
         ),
-        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(83)), String::from("char"), 1),
-        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(90)), String::from("int"), 4),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(86)), String::from("char"), 1),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(93)), String::from("int"), 4),
     ];
 
     extract_test(infos, expected_variables, expected_types, Vec::new());
@@ -695,11 +710,13 @@ fn extract_anonymous_union_structure() {
             TypeEntryId::new(Offset::new(45)),
             None,
             4,
-            vec![StructureTypeMemberEntryBuilder::new()
-                .name("a")
-                .type_ref(TypeEntryId::new(Offset::new(66)))
-                .location(0)
-                .build()],
+            vec![StructureTypeMemberEntry::from(
+                MemberEntryBuilder::new_structure()
+                    .name("a")
+                    .type_ref(TypeEntryId::new(Offset::new(66)))
+                    .location(0)
+                    .build(),
+            )],
         ),
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(66)), String::from("int"), 4),
         TypeEntry::new_union_type_entry(
@@ -707,14 +724,18 @@ fn extract_anonymous_union_structure() {
             None,
             4,
             vec![
-                UnionTypeMemberEntry {
-                    name: String::from("a"),
-                    type_ref: TypeEntryId::new(Offset::new(66)),
-                },
-                UnionTypeMemberEntry {
-                    name: String::from("b"),
-                    type_ref: TypeEntryId::new(Offset::new(123)),
-                },
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("a")
+                        .type_ref(TypeEntryId::new(Offset::new(66)))
+                        .build(),
+                ),
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("b")
+                        .type_ref(TypeEntryId::new(Offset::new(123)))
+                        .build(),
+                ),
             ],
         ),
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(123)), String::from("char"), 1),
@@ -949,11 +970,13 @@ fn extract_complex_structure() {
             TypeEntryId::new(Offset::new(45)),
             Some(String::from("student")),
             4,
-            vec![StructureTypeMemberEntryBuilder::new()
-                .name("name")
-                .location(0)
-                .type_ref(TypeEntryId::new(Offset::new(72)))
-                .build()],
+            vec![StructureTypeMemberEntry::from(
+                MemberEntryBuilder::new_structure()
+                    .name("name")
+                    .location(0)
+                    .type_ref(TypeEntryId::new(Offset::new(72)))
+                    .build(),
+            )],
         ),
         TypeEntry::new_array_type_entry(
             TypeEntryId::new(Offset::new(72)),
@@ -971,21 +994,27 @@ fn extract_complex_structure() {
             Some(String::from("hoge")),
             24,
             vec![
-                StructureTypeMemberEntryBuilder::new()
-                    .name("hoge")
-                    .location(0)
-                    .type_ref(TypeEntryId::new(Offset::new(155)))
-                    .build(),
-                StructureTypeMemberEntryBuilder::new()
-                    .name("array")
-                    .location(8)
-                    .type_ref(TypeEntryId::new(Offset::new(168)))
-                    .build(),
-                StructureTypeMemberEntryBuilder::new()
-                    .name("student")
-                    .location(16)
-                    .type_ref(TypeEntryId::new(Offset::new(45)))
-                    .build(),
+                StructureTypeMemberEntry::from(
+                    MemberEntryBuilder::new_structure()
+                        .name("hoge")
+                        .location(0)
+                        .type_ref(TypeEntryId::new(Offset::new(155)))
+                        .build(),
+                ),
+                StructureTypeMemberEntry::from(
+                    MemberEntryBuilder::new_structure()
+                        .name("array")
+                        .location(8)
+                        .type_ref(TypeEntryId::new(Offset::new(168)))
+                        .build(),
+                ),
+                StructureTypeMemberEntry::from(
+                    MemberEntryBuilder::new_structure()
+                        .name("student")
+                        .location(16)
+                        .type_ref(TypeEntryId::new(Offset::new(45)))
+                        .build(),
+                ),
             ],
         ),
         TypeEntry::new_pointer_type_entry(

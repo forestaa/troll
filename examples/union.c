@@ -1,6 +1,6 @@
 union book {
   char name;
-  int price;
+  int price: 8;
 } book;
 
 

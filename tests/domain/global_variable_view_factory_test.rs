@@ -318,23 +318,29 @@ fn from_global_variable_structure() {
             Some(String::from("hoge")),
             8,
             vec![
-                StructureTypeMemberEntryBuilder::new()
-                    .name("hoge")
-                    .location(0)
-                    .type_ref(TypeEntryId::new(Offset::new(101)))
-                    .build(),
-                StructureTypeMemberEntryBuilder::new()
-                    .name("fuga")
-                    .location(4)
-                    .type_ref(TypeEntryId::new(Offset::new(108)))
-                    .build(),
-                StructureTypeMemberEntryBuilder::new()
-                    .name("pohe")
-                    .location(4)
-                    .type_ref(TypeEntryId::new(Offset::new(115)))
-                    .bit_size(1)
-                    .bit_offset(23)
-                    .build(),
+                StructureTypeMemberEntry::from(
+                    MemberEntryBuilder::new_structure()
+                        .name("hoge")
+                        .location(0)
+                        .type_ref(TypeEntryId::new(Offset::new(101)))
+                        .build(),
+                ),
+                StructureTypeMemberEntry::from(
+                    MemberEntryBuilder::new_structure()
+                        .name("fuga")
+                        .location(4)
+                        .type_ref(TypeEntryId::new(Offset::new(108)))
+                        .build(),
+                ),
+                StructureTypeMemberEntry::from(
+                    MemberEntryBuilder::new_structure()
+                        .name("pohe")
+                        .location(4)
+                        .type_ref(TypeEntryId::new(Offset::new(115)))
+                        .bit_size(Some(1))
+                        .bit_offset(Some(23))
+                        .build(),
+                ),
             ],
         ),
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(101)), String::from("int"), 4),
@@ -392,18 +398,24 @@ fn from_global_variable_union() {
             Some(String::from("book")),
             4,
             vec![
-                UnionTypeMemberEntry {
-                    name: String::from("name"),
-                    type_ref: TypeEntryId::new(Offset::new(83)),
-                },
-                UnionTypeMemberEntry {
-                    name: String::from("price"),
-                    type_ref: TypeEntryId::new(Offset::new(90)),
-                },
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("name")
+                        .type_ref(TypeEntryId::new(Offset::new(86)))
+                        .build(),
+                ),
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("price")
+                        .type_ref(TypeEntryId::new(Offset::new(93)))
+                        .bit_size(Some(8))
+                        .bit_offset(Some(24))
+                        .build(),
+                ),
             ],
         ),
-        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(83)), String::from("char"), 1),
-        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(90)), String::from("int"), 4),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(86)), String::from("char"), 1),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(93)), String::from("int"), 4),
     ];
 
     let global_variable = GlobalVariable::new_variable(
@@ -428,6 +440,8 @@ fn from_global_variable_union() {
                 .name("price")
                 .address(Some(Address::new(Location::new(16428))))
                 .size(4)
+                .bit_size(Some(8))
+                .bit_offset(Some(24))
                 .type_view(TypeView::new_base_type_view("int"))
                 .build(),
         ])
@@ -443,11 +457,13 @@ fn from_global_variable_anonymous_union_structure() {
             TypeEntryId::new(Offset::new(45)),
             None,
             4,
-            vec![StructureTypeMemberEntryBuilder::new()
-                .name("a")
-                .type_ref(TypeEntryId::new(Offset::new(66)))
-                .location(0)
-                .build()],
+            vec![StructureTypeMemberEntry::from(
+                MemberEntryBuilder::new_structure()
+                    .name("a")
+                    .type_ref(TypeEntryId::new(Offset::new(66)))
+                    .location(0)
+                    .build(),
+            )],
         ),
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(66)), String::from("int"), 4),
         TypeEntry::new_union_type_entry(
@@ -455,14 +471,18 @@ fn from_global_variable_anonymous_union_structure() {
             None,
             4,
             vec![
-                UnionTypeMemberEntry {
-                    name: String::from("a"),
-                    type_ref: TypeEntryId::new(Offset::new(66)),
-                },
-                UnionTypeMemberEntry {
-                    name: String::from("b"),
-                    type_ref: TypeEntryId::new(Offset::new(123)),
-                },
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("a")
+                        .type_ref(TypeEntryId::new(Offset::new(66)))
+                        .build(),
+                ),
+                UnionTypeMemberEntry::from(
+                    MemberEntryBuilder::new_union()
+                        .name("b")
+                        .type_ref(TypeEntryId::new(Offset::new(123)))
+                        .build(),
+                ),
             ],
         ),
         TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(123)), String::from("char"), 1),
@@ -515,43 +535,6 @@ fn from_global_variable_anonymous_union_structure() {
             ])
             .build(),
     ];
-    // let expected_views = vec![
-    //     GlobalVariableView::new(
-    //         String::from("a"),
-    //         Some(Address::new(Location::new(16428))),
-    //         4,
-    //         TypeView::new_structure_type_view::<String>(None),
-    //         vec![GlobalVariableView::new(
-    //             String::from("a"),
-    //             Some(Address::new(Location::new(16428))),
-    //             4,
-    //             TypeView::new_base_type_view("int"),
-    //             vec![],
-    //         )],
-    //     ),
-    //     GlobalVariableView::new(
-    //         String::from("ab"),
-    //         Some(Address::new(Location::new(16432))),
-    //         4,
-    //         TypeView::new_union_type_view::<String>(None),
-    //         vec![
-    //             GlobalVariableView::new(
-    //                 String::from("a"),
-    //                 Some(Address::new(Location::new(16432))),
-    //                 4,
-    //                 TypeView::new_base_type_view("int"),
-    //                 vec![],
-    //             ),
-    //             GlobalVariableView::new(
-    //                 String::from("b"),
-    //                 Some(Address::new(Location::new(16432))),
-    //                 1,
-    //                 TypeView::new_base_type_view("char"),
-    //                 vec![],
-    //             ),
-    //         ],
-    //     ),
-    // ];
 
     from_global_variables_test(defined_types, Vec::new(), global_variables, expected_views);
 }
@@ -601,11 +584,13 @@ fn from_global_variable_complex_structure() {
             TypeEntryId::new(Offset::new(45)),
             Some(String::from("student")),
             4,
-            vec![StructureTypeMemberEntryBuilder::new()
-                .name("name")
-                .location(0)
-                .type_ref(TypeEntryId::new(Offset::new(72)))
-                .build()],
+            vec![StructureTypeMemberEntry::from(
+                MemberEntryBuilder::new_structure()
+                    .name("name")
+                    .location(0)
+                    .type_ref(TypeEntryId::new(Offset::new(72)))
+                    .build(),
+            )],
         ),
         TypeEntry::new_array_type_entry(
             TypeEntryId::new(Offset::new(72)),
@@ -623,21 +608,27 @@ fn from_global_variable_complex_structure() {
             Some(String::from("hoge")),
             24,
             vec![
-                StructureTypeMemberEntryBuilder::new()
-                    .name("hoge")
-                    .location(0)
-                    .type_ref(TypeEntryId::new(Offset::new(155)))
-                    .build(),
-                StructureTypeMemberEntryBuilder::new()
-                    .name("array")
-                    .location(8)
-                    .type_ref(TypeEntryId::new(Offset::new(168)))
-                    .build(),
-                StructureTypeMemberEntryBuilder::new()
-                    .name("student")
-                    .location(16)
-                    .type_ref(TypeEntryId::new(Offset::new(45)))
-                    .build(),
+                StructureTypeMemberEntry::from(
+                    MemberEntryBuilder::new_structure()
+                        .name("hoge")
+                        .location(0)
+                        .type_ref(TypeEntryId::new(Offset::new(155)))
+                        .build(),
+                ),
+                StructureTypeMemberEntry::from(
+                    MemberEntryBuilder::new_structure()
+                        .name("array")
+                        .location(8)
+                        .type_ref(TypeEntryId::new(Offset::new(168)))
+                        .build(),
+                ),
+                StructureTypeMemberEntry::from(
+                    MemberEntryBuilder::new_structure()
+                        .name("student")
+                        .location(16)
+                        .type_ref(TypeEntryId::new(Offset::new(45)))
+                        .build(),
+                ),
             ],
         ),
         TypeEntry::new_pointer_type_entry(
