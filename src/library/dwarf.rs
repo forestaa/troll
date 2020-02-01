@@ -370,13 +370,11 @@ impl DwarfInfoIntoIterator {
             gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
         >,
     ) -> Option<usize> {
-        if let Some(gimli::read::AttributeValue::Data1(upper_bound)) =
-            entry.attr_value(gimli::DW_AT_upper_bound).unwrap()
-        {
-            Some(upper_bound as usize)
-        } else {
-            None
-        }
+        entry
+            .attr_value(gimli::DW_AT_upper_bound)
+            .unwrap()
+            .and_then(|value| value.udata_value())
+            .map(|byte_size| byte_size as usize)
     }
 
     fn get_const_value<'abbrev, 'unit>(
