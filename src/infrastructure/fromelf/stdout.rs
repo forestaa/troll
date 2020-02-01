@@ -42,7 +42,8 @@ impl FromElfBlock {
         parent_name: &ParentName,
     ) -> FromElfBlock {
         let variable_name = parent_name.with_parent(&variable_view.name);
-        let parent_name = parent_name.new_parent_from_variable_view(&variable_view);
+        let parent_name = parent_name
+            .new_parent_from_variable_view(&variable_view.name, &variable_view.type_view);
 
         let mut lines = vec![FromElfLine {
             address: variable_view.address.map(|addr| addr.clone().into()),
@@ -113,15 +114,23 @@ enum ParentName {
 }
 
 impl ParentName {
-    fn new_parent_from_variable_view(&self, variable_view: &GlobalVariableView) -> ParentName {
-        match variable_view.type_view {
-            TypeView::Structure { .. } => Self::Structure(self.with_parent(&variable_view.name)),
-            TypeView::Union { .. } => Self::Union(self.with_parent(&variable_view.name)),
-            TypeView::Array { .. } => Self::Array(self.with_parent(&variable_view.name)),
-            TypeView::TypeDef { ref type_view, .. } => {
-                let mut variable_view = variable_view.clone();
-                variable_view.set_type_view(*type_view.clone());
-                self.new_parent_from_variable_view(&variable_view)
+    fn new_parent_from_variable_view(
+        &self,
+        variable_view_name: &String,
+        type_view: &TypeView,
+    ) -> ParentName {
+        match type_view {
+            TypeView::Structure { .. } => Self::Structure(self.with_parent(variable_view_name)),
+            TypeView::Union { .. } => Self::Union(self.with_parent(variable_view_name)),
+            TypeView::Array { .. } => Self::Array(self.with_parent(variable_view_name)),
+            TypeView::TypeDef { type_view, .. } => {
+                self.new_parent_from_variable_view(variable_view_name, type_view)
+            }
+            TypeView::Volatile { type_view } => {
+                self.new_parent_from_variable_view(variable_view_name, type_view)
+            }
+            TypeView::Const { type_view } => {
+                self.new_parent_from_variable_view(variable_view_name, type_view)
             }
             _ => Self::None,
         }

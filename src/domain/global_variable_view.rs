@@ -13,10 +13,6 @@ pub struct GlobalVariableView {
 }
 
 impl GlobalVariableView {
-    pub fn set_type_view(&mut self, type_view: TypeView) {
-        self.map_type_view(|_| type_view);
-    }
-
     pub fn map_type_view(&mut self, f: impl FnOnce(TypeView) -> TypeView) {
         self.type_view = f(self.type_view.clone())
     }
