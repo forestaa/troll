@@ -206,7 +206,7 @@ fn from_global_variable_enum() {
         TypeEntry::new_enum_type_entry(
             TypeEntryId::new(Offset::new(45)),
             Some(String::from("AB")),
-            TypeEntryId::new(Offset::new(71)),
+            TypeEntryId::new(Offset::new(78)),
             vec![
                 EnumeratorEntry {
                     name: String::from("A"),
@@ -214,16 +214,15 @@ fn from_global_variable_enum() {
                 },
                 EnumeratorEntry {
                     name: String::from("B"),
-                    value: 1,
+                    value: -1,
+                },
+                EnumeratorEntry {
+                    name: String::from("C"),
+                    value: 131110,
                 },
             ],
         ),
-        TypeEntry::new_base_type_entry(
-            TypeEntryId::new(Offset::new(71)),
-            String::from("unsigned int"),
-            4,
-        ),
-        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(129)), String::from("int"), 4),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(78)), String::from("int"), 4),
     ];
 
     let global_variable = GlobalVariable::new_variable(
@@ -238,7 +237,7 @@ fn from_global_variable_enum() {
         .size(4)
         .type_view(TypeView::new_enum_type_view(
             Some("AB"),
-            TypeView::new_base_type_view("unsigned int"),
+            TypeView::new_base_type_view("int"),
             vec![
                 Enumerator {
                     name: String::from("A"),
@@ -246,7 +245,11 @@ fn from_global_variable_enum() {
                 },
                 Enumerator {
                     name: String::from("B"),
-                    value: 1,
+                    value: -1,
+                },
+                Enumerator {
+                    name: String::from("C"),
+                    value: 131110,
                 },
             ],
         ))
