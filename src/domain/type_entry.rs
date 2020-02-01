@@ -73,7 +73,7 @@ pub enum TypeEntryKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnumeratorEntry {
     pub name: String,
-    pub value: usize,
+    pub value: isize,
 }
 
 #[derive(Debug, Clone, PartialEq)]

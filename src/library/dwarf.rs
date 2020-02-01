@@ -87,7 +87,7 @@ pub struct DwarfInfo {
     bit_offset: Option<usize>,
     location: Option<Location>,
     upper_bound: Option<usize>,
-    const_value: Option<usize>,
+    const_value: Option<isize>,
     data_member_location: Option<usize>,
     declaration: Option<bool>,
     specification: Option<Offset>,
@@ -131,7 +131,7 @@ impl DwarfInfo {
         self.upper_bound
     }
 
-    pub fn const_value(&self) -> Option<usize> {
+    pub fn const_value(&self) -> Option<isize> {
         self.const_value
     }
 
@@ -383,14 +383,12 @@ impl DwarfInfoIntoIterator {
             'unit,
             gimli::read::EndianSlice<'abbrev, gimli::RunTimeEndian>,
         >,
-    ) -> Option<usize> {
-        if let Some(gimli::read::AttributeValue::Data1(const_value)) =
-            entry.attr_value(gimli::DW_AT_const_value).unwrap()
-        {
-            Some(const_value as usize)
-        } else {
-            None
-        }
+    ) -> Option<isize> {
+        entry
+            .attr_value(gimli::DW_AT_const_value)
+            .unwrap()
+            .and_then(|value| value.sdata_value())
+            .map(|const_value| const_value as isize)
     }
 
     fn get_data_member_location<'abbrev, 'unit>(
@@ -507,7 +505,7 @@ pub struct DwarfInfoBuilder<OffsetP, TagP> {
     bit_offset: Option<usize>,
     location: Option<Location>,
     upper_bound: Option<usize>,
-    const_value: Option<usize>,
+    const_value: Option<isize>,
     data_member_location: Option<usize>,
     declaration: Option<bool>,
     specification: Option<Offset>,
@@ -634,7 +632,7 @@ impl<OffsetP, TagP> DwarfInfoBuilder<OffsetP, TagP> {
         self
     }
 
-    pub fn const_value(mut self, const_value: usize) -> Self {
+    pub fn const_value(mut self, const_value: isize) -> Self {
         self.const_value = Some(const_value);
         self
     }
