@@ -3,12 +3,13 @@ use log::warn;
 use super::global_variable::*;
 use super::type_entry::*;
 use super::type_entry_repository::TypeEntryRepository;
-use super::variable_declaration_repository::VariableDeclarationRepository;
+use super::variable_declaration_entry::*;
+use super::variable_declaration_entry_repository::VariableDeclarationEntryRepository;
 use crate::library::dwarf::{DwarfInfo, DwarfTag};
 
 pub struct GlobalVariablesExtractor<'type_repo, 'dec_repo> {
     type_entry_repository: &'type_repo mut TypeEntryRepository,
-    variable_declaration_repository: &'dec_repo mut VariableDeclarationRepository,
+    variable_declaration_repository: &'dec_repo mut VariableDeclarationEntryRepository,
 }
 
 enum ExtractVariableOutput {
@@ -19,7 +20,7 @@ enum ExtractVariableOutput {
 impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
     pub fn new(
         type_entry_repository: &'type_repo mut TypeEntryRepository,
-        variable_declaration_repository: &'dec_repo mut VariableDeclarationRepository,
+        variable_declaration_repository: &'dec_repo mut VariableDeclarationEntryRepository,
     ) -> Self {
         Self {
             type_entry_repository,
