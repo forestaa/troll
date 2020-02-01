@@ -1,5 +1,6 @@
 pub mod entity;
 pub mod entity_repository;
+pub mod entry_factory;
 pub mod global_variable;
 pub mod global_variable_view;
 pub mod global_variable_view_factory;
