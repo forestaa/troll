@@ -1,25 +1,20 @@
 use log::warn;
 
+use super::entry_factory::*;
 use super::global_variable::*;
-use super::type_entry::*;
 use super::type_entry_repository::TypeEntryRepository;
-use super::variable_declaration_repository::VariableDeclarationRepository;
-use crate::library::dwarf::{DwarfInfo, DwarfTag};
+use super::variable_declaration_entry_repository::VariableDeclarationEntryRepository;
+use crate::library::dwarf::DwarfInfo;
 
 pub struct GlobalVariablesExtractor<'type_repo, 'dec_repo> {
     type_entry_repository: &'type_repo mut TypeEntryRepository,
-    variable_declaration_repository: &'dec_repo mut VariableDeclarationRepository,
-}
-
-enum ExtractVariableOutput {
-    GlobalVariable(GlobalVariable),
-    VariableDeclaration(VariableDeclarationEntry),
+    variable_declaration_repository: &'dec_repo mut VariableDeclarationEntryRepository,
 }
 
 impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
     pub fn new(
         type_entry_repository: &'type_repo mut TypeEntryRepository,
-        variable_declaration_repository: &'dec_repo mut VariableDeclarationRepository,
+        variable_declaration_repository: &'dec_repo mut VariableDeclarationEntryRepository,
     ) -> Self {
         Self {
             type_entry_repository,
@@ -27,318 +22,29 @@ impl<'type_repo, 'dec_repo> GlobalVariablesExtractor<'type_repo, 'dec_repo> {
         }
     }
 
-    pub fn extract(&mut self, entries: impl Iterator<Item = DwarfInfo>) -> Vec<GlobalVariable> {
+    pub fn extract(&mut self, infos: impl Iterator<Item = DwarfInfo>) -> Vec<GlobalVariable> {
         let mut global_variables = Vec::new();
-        for entry in entries {
-            let result = match entry.tag() {
-                DwarfTag::DW_TAG_variable => {
-                    Self::extract_variable(&entry).map(|output| match output {
-                        ExtractVariableOutput::GlobalVariable(global_variable) => {
-                            global_variables.push(global_variable)
-                        }
-                        ExtractVariableOutput::VariableDeclaration(variable_dec) => {
-                            self.variable_declaration_repository.save(variable_dec)
-                        }
-                    })
+        for info in infos {
+            match EntryFactory::from_dwarf_info(&info) {
+                Ok(FromDwarfInfoOutput::GlobalVariable(global_variable)) => {
+                    global_variables.push(global_variable)
                 }
-                DwarfTag::DW_TAG_typedef => Self::extract_typedef(&entry)
-                    .map(|type_entry| self.type_entry_repository.save(type_entry)),
-                DwarfTag::DW_TAG_volatile_type => Self::extract_volatile_type(&entry)
-                    .map(|type_entry| self.type_entry_repository.save(type_entry)),
-                DwarfTag::DW_TAG_const_type => Self::extract_const_type(&entry)
-                    .map(|type_entry| self.type_entry_repository.save(type_entry)),
-                DwarfTag::DW_TAG_pointer_type => Self::extract_pointer_type(&entry)
-                    .map(|type_entry| self.type_entry_repository.save(type_entry)),
-                DwarfTag::DW_TAG_base_type => Self::extract_base_type(&entry)
-                    .map(|type_entry| self.type_entry_repository.save(type_entry)),
-                DwarfTag::DW_TAG_enumeration_type => Self::extract_enumeration_type(&entry)
-                    .map(|type_entry| self.type_entry_repository.save(type_entry)),
-                DwarfTag::DW_TAG_structure_type => Self::extract_structure_type(&entry)
-                    .map(|type_entry| self.type_entry_repository.save(type_entry)),
-                DwarfTag::DW_TAG_union_type => Self::extract_union_type(&entry)
-                    .map(|type_entry| self.type_entry_repository.save(type_entry)),
-                DwarfTag::DW_TAG_array_type => Self::extract_array_type(&entry)
-                    .map(|type_entry| self.type_entry_repository.save(type_entry)),
-                DwarfTag::DW_TAG_subroutine_type => Ok(self
-                    .type_entry_repository
-                    .save(Self::extract_function_type(&entry))),
-                DwarfTag::DW_TAG_enumerator => Ok(()),
-                DwarfTag::DW_TAG_subrange_type => Ok(()),
-                DwarfTag::DW_TAG_formal_parameter => Ok(()),
-                DwarfTag::DW_TAG_unimplemented => Ok(()),
-            };
-            match result {
-                Err(msg) => Self::warning_no_expected_attribute(msg, &entry),
-                Ok(()) => (),
+                Ok(FromDwarfInfoOutput::TypeEntry {
+                    entry,
+                    children_warnings,
+                }) => {
+                    for warnings in children_warnings {
+                        Self::warning_no_expected_attribute(warnings, &info);
+                    }
+                    self.type_entry_repository.save(entry)
+                }
+                Ok(FromDwarfInfoOutput::VariableDeclarationEntry(entry)) => {
+                    self.variable_declaration_repository.save(entry)
+                }
+                _ => (),
             }
         }
         global_variables
-    }
-
-    fn extract_variable(entry: &DwarfInfo) -> Result<ExtractVariableOutput, String> {
-        match entry.declaration() {
-            None => Self::extract_variable_without_declaration(entry)
-                .map(|global_variable| ExtractVariableOutput::GlobalVariable(global_variable)),
-            Some(_) => Self::extract_variable_with_declaration(entry)
-                .map(|dec| ExtractVariableOutput::VariableDeclaration(dec)),
-        }
-    }
-
-    fn extract_variable_without_declaration(entry: &DwarfInfo) -> Result<GlobalVariable, String> {
-        let address = entry.location().map(Address::new);
-        match entry.specification() {
-            None => {
-                let name = match entry.name() {
-                    Some(name) => Ok(name),
-                    None => Err("variable entry should have name"),
-                }?;
-                let type_ref = match entry.type_offset() {
-                    Some(type_ref) => Ok(TypeEntryId::new(type_ref)),
-                    None => Err("variable entry should have type"),
-                }?;
-                Ok(GlobalVariable::new_variable(address, name, type_ref))
-            }
-            Some(dec_ref) => {
-                let spec = VariableDeclarationEntryId::new(dec_ref);
-                Ok(GlobalVariable::new_variable_with_spec(address, spec))
-            }
-        }
-    }
-
-    fn extract_variable_with_declaration(
-        entry: &DwarfInfo,
-    ) -> Result<VariableDeclarationEntry, String> {
-        let id = VariableDeclarationEntryId::new(entry.offset());
-        let name = match entry.name() {
-            Some(name) => Ok(name),
-            None => Err("variable entry with declaration should have name"),
-        }?;
-        let type_ref = match entry.type_offset() {
-            Some(type_ref) => Ok(TypeEntryId::new(type_ref)),
-            None => Err("variable entry with declaration should have type"),
-        }?;
-        Ok(VariableDeclarationEntry::new(id, name, type_ref))
-    }
-
-    fn extract_typedef(entry: &DwarfInfo) -> Result<TypeEntry, String> {
-        let id = TypeEntryId::new(entry.offset());
-        let name = match entry.name() {
-            Some(name) => Ok(name),
-            None => Err("typedef entry should have name"),
-        }?;
-        let type_ref = match entry.type_offset() {
-            Some(type_ref) => Ok(TypeEntryId::new(type_ref)),
-            None => Err("typedef entry should have type"),
-        }?;
-        Ok(TypeEntry::new_typedef_entry(id, name, type_ref))
-    }
-
-    fn extract_volatile_type(entry: &DwarfInfo) -> Result<TypeEntry, String> {
-        let id = TypeEntryId::new(entry.offset());
-        let type_ref = match entry.type_offset() {
-            Some(type_ref) => Ok(TypeEntryId::new(type_ref)),
-            None => Err("volatile_type entry should have type"),
-        }?;
-
-        Ok(TypeEntry::new_volatile_type_entry(id, type_ref))
-    }
-
-    fn extract_const_type(entry: &DwarfInfo) -> Result<TypeEntry, String> {
-        let id = TypeEntryId::new(entry.offset());
-        let type_ref = match entry.type_offset() {
-            Some(type_ref) => Ok(TypeEntryId::new(type_ref)),
-            None => Err("const_type entry should have type"),
-        }?;
-
-        Ok(TypeEntry::new_const_type_entry(id, type_ref))
-    }
-
-    fn extract_pointer_type(entry: &DwarfInfo) -> Result<TypeEntry, String> {
-        let id = TypeEntryId::new(entry.offset());
-        let size = match entry.byte_size() {
-            Some(size) => Ok(size),
-            None => Err("pointer_type entry should have size"),
-        }?;
-        let type_ref = entry.type_offset().map(TypeEntryId::new);
-        Ok(TypeEntry::new_pointer_type_entry(id, size, type_ref))
-    }
-
-    fn extract_base_type(entry: &DwarfInfo) -> Result<TypeEntry, String> {
-        let id = TypeEntryId::new(entry.offset());
-        let name = match entry.name() {
-            Some(name) => Ok(name),
-            None => Err("base_type entry should have name"),
-        }?;
-
-        let size = match entry.byte_size() {
-            Some(size) => Ok(size),
-            None => Err("base_type entry should have size"),
-        }?;
-        Ok(TypeEntry::new_base_type_entry(id, name, size))
-    }
-
-    fn extract_enumeration_type(entry: &DwarfInfo) -> Result<TypeEntry, String> {
-        let id = TypeEntryId::new(entry.offset());
-        let name = entry.name();
-        let type_ref = match entry.type_offset() {
-            Some(type_ref) => Ok(TypeEntryId::new(type_ref)),
-            None => Err("enumeration_type entry should have type"),
-        }?;
-
-        let enumerators = entry
-            .children()
-            .iter()
-            .flat_map(|entry| {
-                let name = entry.name().or_else(|| {
-                    Self::warning_no_expected_attribute(
-                        String::from("enumerator entry should have name"),
-                        &entry,
-                    );
-                    None
-                })?;
-                let value = entry.const_value().or_else(|| {
-                    Self::warning_no_expected_attribute(
-                        String::from("enumerator entry should have const_value"),
-                        &entry,
-                    );
-                    None
-                })?;
-
-                Some(EnumeratorEntry { name, value })
-            })
-            .collect();
-        Ok(TypeEntry::new_enum_type_entry(
-            id,
-            name,
-            type_ref,
-            enumerators,
-        ))
-    }
-
-    fn extract_structure_type(entry: &DwarfInfo) -> Result<TypeEntry, String> {
-        let id = TypeEntryId::new(entry.offset());
-
-        let name = entry.name();
-        let size = match entry.byte_size() {
-            Some(size) => Ok(size),
-            None => Err("structure_type entry should have size"),
-        }?;
-        let members = entry
-            .children()
-            .iter()
-            .flat_map(|entry| {
-                let name = entry.name().or_else(|| {
-                    Self::warning_no_expected_attribute(
-                        String::from("member entry should have name"),
-                        &entry,
-                    );
-                    None
-                })?;
-                let location = entry.data_member_location().or_else(|| {
-                    Self::warning_no_expected_attribute(
-                        String::from("member entry should have data_member_location"),
-                        &entry,
-                    );
-                    None
-                })?;
-                let type_ref = match entry.type_offset() {
-                    Some(type_ref) => Some(TypeEntryId::new(type_ref)),
-                    None => {
-                        Self::warning_no_expected_attribute(
-                            String::from("member entry should have type"),
-                            &entry,
-                        );
-                        None
-                    }
-                }?;
-
-                let bit_size = entry.bit_size();
-                let bit_offset = entry.bit_offset();
-
-                Some(StructureTypeMemberEntry::new(
-                    name, location, type_ref, bit_size, bit_offset,
-                ))
-            })
-            .collect();
-        Ok(TypeEntry::new_structure_type_entry(id, name, size, members))
-    }
-
-    fn extract_union_type(entry: &DwarfInfo) -> Result<TypeEntry, String> {
-        let id = TypeEntryId::new(entry.offset());
-        let name = entry.name();
-        let size = match entry.byte_size() {
-            Some(size) => Ok(size),
-            None => Err("structure_type entry should have size"),
-        }?;
-        let members = entry
-            .children()
-            .iter()
-            .flat_map(|entry| {
-                let name = entry.name().or_else(|| {
-                    Self::warning_no_expected_attribute(
-                        String::from("member entry should have name"),
-                        &entry,
-                    );
-                    None
-                })?;
-                let type_ref = match entry.type_offset() {
-                    Some(type_ref) => Some(TypeEntryId::new(type_ref)),
-                    None => {
-                        Self::warning_no_expected_attribute(
-                            String::from("member entry should have type"),
-                            &entry,
-                        );
-                        None
-                    }
-                }?;
-
-                let bit_size = entry.bit_size();
-                let bit_offset = entry.bit_offset();
-
-                Some(UnionTypeMemberEntry::new(
-                    name, type_ref, bit_size, bit_offset,
-                ))
-            })
-            .collect();
-        Ok(TypeEntry::new_union_type_entry(id, name, size, members))
-    }
-
-    fn extract_array_type(entry: &DwarfInfo) -> Result<TypeEntry, String> {
-        let id = TypeEntryId::new(entry.offset());
-        let type_ref = match entry.type_offset() {
-            Some(type_ref) => Ok(TypeEntryId::new(type_ref)),
-            None => Err("array_type entry should have type"),
-        }?;
-        let upper_bound = entry.children().iter().find_map(|child| match child.tag() {
-            DwarfTag::DW_TAG_subrange_type => child.upper_bound(),
-            _ => None,
-        });
-        Ok(TypeEntry::new_array_type_entry(id, type_ref, upper_bound))
-    }
-
-    fn extract_function_type(entry: &DwarfInfo) -> TypeEntry {
-        let id = TypeEntryId::new(entry.offset());
-        let argument_type_ref = entry
-            .children()
-            .iter()
-            .flat_map(|entry| match (entry.tag(), entry.type_offset()) {
-                (DwarfTag::DW_TAG_formal_parameter, Some(type_ref)) => {
-                    Some(TypeEntryId::new(type_ref))
-                }
-                (DwarfTag::DW_TAG_formal_parameter, None) => {
-                    Self::warning_no_expected_attribute(
-                        String::from("formal_parameter entry should have type"),
-                        &entry,
-                    );
-                    None
-                }
-                _ => None,
-            })
-            .collect();
-        let return_type_ref = entry
-            .type_offset()
-            .map(|type_ref| TypeEntryId::new(type_ref));
-        TypeEntry::new_function_type_entry(id, argument_type_ref, return_type_ref)
     }
 
     fn warning_no_expected_attribute(message: String, entry: &DwarfInfo) {

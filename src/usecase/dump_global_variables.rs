@@ -2,19 +2,19 @@ use crate::domain::global_variable_view::GlobalVariableView;
 use crate::domain::global_variable_view_factory::GlobalVariableViewFactory;
 use crate::domain::global_variables_extractor::GlobalVariablesExtractor;
 use crate::domain::type_entry_repository::TypeEntryRepository;
-use crate::domain::variable_declaration_repository::VariableDeclarationRepository;
+use crate::domain::variable_declaration_entry_repository::VariableDeclarationEntryRepository;
 use crate::library::dwarf;
 
 pub struct DumpGlobalVariablesUsecase {
     type_entry_repository: TypeEntryRepository,
-    variable_declaration_repository: VariableDeclarationRepository,
+    variable_declaration_repository: VariableDeclarationEntryRepository,
 }
 
 impl DumpGlobalVariablesUsecase {
     pub fn new() -> Self {
         Self {
             type_entry_repository: TypeEntryRepository::new(),
-            variable_declaration_repository: VariableDeclarationRepository::new(),
+            variable_declaration_repository: VariableDeclarationEntryRepository::new(),
         }
     }
 

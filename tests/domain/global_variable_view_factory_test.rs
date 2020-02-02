@@ -5,7 +5,8 @@ use troll::domain::global_variable_view::*;
 use troll::domain::global_variable_view_factory::*;
 use troll::domain::type_entry::*;
 use troll::domain::type_entry_repository::TypeEntryRepository;
-use troll::domain::variable_declaration_repository::VariableDeclarationRepository;
+use troll::domain::variable_declaration_entry::*;
+use troll::domain::variable_declaration_entry_repository::VariableDeclarationEntryRepository;
 use troll::library::dwarf::{Location, Offset};
 
 fn init() {
@@ -38,7 +39,7 @@ fn from_global_variables_test(
     for defined_type in defined_types {
         type_entry_repository.save(defined_type);
     }
-    let mut variable_declaration_repository = VariableDeclarationRepository::new();
+    let mut variable_declaration_repository = VariableDeclarationEntryRepository::new();
     for variable_dec in variable_decs {
         variable_declaration_repository.save(variable_dec);
     }
