@@ -58,7 +58,7 @@ pub enum TypeView {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Enumerator {
     pub name: String,
-    pub value: usize,
+    pub value: isize,
 }
 
 impl From<&EnumeratorEntry> for Enumerator {

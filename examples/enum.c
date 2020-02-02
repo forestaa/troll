@@ -1,6 +1,7 @@
 enum AB {
   A,
-  B,
+  B = -1,
+  C = 0x20026,
 } ab;
 
 int main() {

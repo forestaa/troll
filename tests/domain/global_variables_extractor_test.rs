@@ -263,7 +263,7 @@ fn extract_enum() {
             .tag(DwarfTag::DW_TAG_enumeration_type)
             .name("AB")
             .byte_size(4)
-            .type_offset(Offset::new(71))
+            .type_offset(Offset::new(78))
             .children(vec![
                 DwarfInfoBuilder::new()
                     .offset(Offset::new(62))
@@ -275,34 +275,34 @@ fn extract_enum() {
                     .offset(Offset::new(66))
                     .tag(DwarfTag::DW_TAG_enumerator)
                     .name("B")
-                    .const_value(1)
+                    .const_value(-1)
+                    .build(),
+                DwarfInfoBuilder::new()
+                    .offset(Offset::new(70))
+                    .tag(DwarfTag::DW_TAG_enumerator)
+                    .name("C")
+                    .const_value(131110)
                     .build(),
             ])
             .build(),
         DwarfInfoBuilder::new()
-            .offset(Offset::new(71))
+            .offset(Offset::new(78))
             .tag(DwarfTag::DW_TAG_base_type)
             .byte_size(4)
-            .name("unsigned int")
+            .name("int")
             .build(),
         DwarfInfoBuilder::new()
-            .offset(Offset::new(78))
+            .offset(Offset::new(85))
             .tag(DwarfTag::DW_TAG_variable)
             .name("ab")
             .type_offset(Offset::new(45))
             .location(Location::new(16428))
             .build(),
         DwarfInfoBuilder::new()
-            .offset(Offset::new(99))
+            .offset(Offset::new(106))
             .tag(DwarfTag::DW_TAG_unimplemented)
             .name("main")
-            .type_offset(Offset::new(129))
-            .build(),
-        DwarfInfoBuilder::new()
-            .offset(Offset::new(129))
-            .tag(DwarfTag::DW_TAG_base_type)
-            .byte_size(4)
-            .name("int")
+            .type_offset(Offset::new(78))
             .build(),
     ];
 
@@ -315,7 +315,7 @@ fn extract_enum() {
         TypeEntry::new_enum_type_entry(
             TypeEntryId::new(Offset::new(45)),
             Some(String::from("AB")),
-            TypeEntryId::new(Offset::new(71)),
+            TypeEntryId::new(Offset::new(78)),
             vec![
                 EnumeratorEntry {
                     name: String::from("A"),
@@ -323,16 +323,15 @@ fn extract_enum() {
                 },
                 EnumeratorEntry {
                     name: String::from("B"),
-                    value: 1,
+                    value: -1,
+                },
+                EnumeratorEntry {
+                    name: String::from("C"),
+                    value: 131110,
                 },
             ],
         ),
-        TypeEntry::new_base_type_entry(
-            TypeEntryId::new(Offset::new(71)),
-            String::from("unsigned int"),
-            4,
-        ),
-        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(129)), String::from("int"), 4),
+        TypeEntry::new_base_type_entry(TypeEntryId::new(Offset::new(78)), String::from("int"), 4),
     ];
 
     extract_test(infos, expected_variables, expected_types, Vec::new());
